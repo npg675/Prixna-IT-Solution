@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lead Inbox (Staff) | Prixna IT Solution</title>
+<meta name="description" content="Staff lead inbox: view, track and follow up website enquiries. Device-local storage.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0A1A38">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script>try{if(localStorage.getItem("prixna_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header id="site-header"></header>
+<main id="main">
+<section class="page-hero"><div class="container">
+<p class="crumb"><a href="index.html">Home</a> / Staff</p>
+<h1>Lead inbox</h1>
+<p>Every website enquiry lands here. Update status, set follow-ups, assign owners, export for backup.</p>
+</div></section>
+<section class="section"><div class="container">
+<div class="card" style="border-color:#F0DDB8;background:#FFFDF6"><b>⚠️ Staff note — read first:</b>
+<span class="small">This inbox is stored <b>in this browser only</b> (no server yet). Export CSV/JSON weekly, don't use on shared computers for customer data, and never add customer details you don't need. Connect a server endpoint or CRM (see <b>js/config.js → formEndpoint</b>) for multi-device access.</span></div>
+<div class="kpi-row">
+<div class="kpi"><b id="k-total">0</b><span>Total leads</span></div>
+<div class="kpi"><b id="k-week">0</b><span>Last 7 days</span></div>
+<div class="kpi"><b id="k-new">0</b><span>Awaiting first contact</span></div>
+<div class="kpi"><b id="k-won">0</b><span>Won</span></div>
+</div>
+<div class="shop-tools">
+<select class="inp" id="f-status" style="max-width:200px" aria-label="Filter by status"><option value="">All statuses</option><option value="new">new</option><option value="contacted">contacted</option><option value="qualified">qualified</option><option value="won">won</option><option value="lost">lost</option></select>
+<input class="inp" id="f-service" placeholder="Filter by service…" style="max-width:240px" aria-label="Filter by service">
+<input class="inp" id="f-q" type="search" placeholder="🔍 Search name, phone, company…" aria-label="Search leads">
+<span class="muted small" id="lead-count"></span>
+</div>
+<div id="lead-list"></div>
+<h2 style="margin-top:44px">Backup & portability</h2>
+<div class="btn-row">
+<button class="btn btn-outline btn-sm" id="exp-csv">⬇ Export CSV</button>
+<button class="btn btn-outline btn-sm" id="exp-json">⬇ Export JSON</button>
+<label class="btn btn-outline btn-sm" style="cursor:pointer">⬆ Import JSON<input type="file" id="imp-json" accept=".json" hidden></label>
+<button class="btn btn-outline btn-sm" id="wipe" style="color:var(--red-600)">🗑 Erase all (after export)</button>
+</div>
+<h2 style="margin-top:44px">Conversion events (this browser)</h2>
+<div class="tbl-wrap"><table class="tbl"><tr><th>Event</th><th>Count</th></tr><tbody id="event-stats"></tbody></table></div>
+<p class="small muted" style="margin-top:12px">Events tracked: phone clicks, WhatsApp clicks, form starts & submissions, quote/demo requests, product views. Connect Google Analytics via <b>js/config.js → analyticsId</b> for site-wide reporting.</p>
+</div></section>
+</main>
+<footer id="site-footer"></footer>
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script src="js/leads.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

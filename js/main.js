@@ -1,0 +1,214 @@
+/* Prixna IT Solution — shared site shell: header, drawer, footer,
+   theme, reveal animations, UTM capture and click-event analytics. */
+(function () {
+  "use strict";
+  var C = window.PRIXNA || {};
+  var NAV = [
+    { href: "index.html", label: "Home" },
+    { href: "software-saas.html", label: "Software Solutions", kids: [
+      { href: "software-saas.html", label: "Business Software & SaaS" },
+      { href: "jigritools.html", label: "JigriTools Suite" },
+      { href: "custom-development.html", label: "Custom Software & Websites" },
+      { href: "accounting-erp-crm.html", label: "Accounting, ERP & CRM" },
+      { href: "restaurant-hospitality.html", label: "Restaurant & Hospitality" },
+      { href: "attendance-payroll.html", label: "Attendance & Payroll" }
+    ]},
+    { href: "shop.html", label: "Hardware & Products", kids: [
+      { href: "shop.html", label: "All Products" },
+      { href: "computers-laptops.html", label: "Computers & Laptops" },
+      { href: "cctv-security.html", label: "CCTV & Security" },
+      { href: "biometric-access.html", label: "Biometric & Access" },
+      { href: "networking-servers.html", label: "Networking & Servers" }
+    ]},
+    { href: "repair-maintenance.html", label: "IT Services", kids: [
+      { href: "repair-maintenance.html", label: "Repair & Maintenance" },
+      { href: "networking-servers.html", label: "Networking & Infrastructure" },
+      { href: "digital-marketing-ai.html", label: "Marketing & AI Automation" }
+    ]},
+    { href: "industries.html", label: "Industries" },
+    { href: "projects.html", label: "Projects" },
+    { href: "about.html", label: "About Us" },
+    { href: "resources.html", label: "Resources" },
+    { href: "contact.html", label: "Contact" }
+  ];
+  function fileName() {
+    var p = location.pathname.split("/").pop() || "index.html";
+    return p.split("?")[0].split("#")[0] || "index.html";
+  }
+  function isActive(item) {
+    var cur = fileName();
+    if (item.href === cur) return true;
+    return (item.kids || []).some(function (k) { return k.href === cur; });
+  }
+  function navHTML(cls) {
+    return NAV.map(function (n) {
+      var a = '<a href="' + n.href + '"' + (isActive(n) ? ' class="active" aria-current="page"' : "") + ">" + n.label + "</a>";
+      if (n.kids && cls !== "drawer") {
+        var kids = n.kids.map(function (k) {
+          return '<a href="' + k.href + '"' + (fileName() === k.href ? ' class="active"' : "") + ">" + k.label + "</a>";
+        }).join("");
+        return '<span class="has-drop">' + a + '<span class="drop">' + kids + "</span></span>";
+      }
+      return a;
+    }).join("");
+  }
+  function drawerNav() {
+    var out = "";
+    NAV.forEach(function (n) {
+      out += '<a href="' + n.href + '">' + n.label + "</a>";
+      (n.kids || []).forEach(function (k) {
+        out += '<a class="sub" href="' + k.href + '">↳ ' + k.label + "</a>";
+      });
+    });
+    return out;
+  }
+  function waLink(text) {
+    return "https://wa.me/" + C.whatsappNumber + "?text=" + encodeURIComponent(text || "Hello Prixna IT Solution, I need a free consultation for my business.");
+  }
+  /* ---------- header ---------- */
+  function mountHeader() {
+    var el = document.getElementById("site-header");
+    if (!el) return;
+    el.className = "site-header";
+    el.innerHTML =
+      '<div class="topstrip"><div class="container">' +
+      '<a class="hide-m" href="' + C.mapsUrl + '" target="_blank" rel="noopener">📍 Jadibuti-32, Koteshwor, Kathmandu</a>' +
+      '<a href="' + C.phoneHref + '" data-track="topstrip_call">📞 ' + C.phoneDisplay + "</a>" +
+      '<a href="' + waLink() + '" target="_blank" rel="noopener" data-track="topstrip_whatsapp">💬 WhatsApp</a>' +
+      "</div></div>" +
+      '<div class="header-in">' +
+      '<a class="brand" href="index.html" aria-label="Prixna IT Solution — home">' +
+      '<img src="' + C.logoUrl + '" alt="Prixna IT Solution logo" width="42" height="42" onerror="this.style.display=\'none\'">' +
+      '<span>Prixna IT Solution<small>Business Technology Partner</small></span></a>' +
+      '<nav class="mainnav" aria-label="Primary">' + navHTML() + "</nav>" +
+      '<div class="header-cta">' +
+      '<button class="icon-btn" id="theme-btn" aria-label="Toggle dark mode" title="Toggle dark mode">🌙</button>' +
+      '<a class="btn btn-primary btn-sm" href="quote.html" data-track="header_consult">Get a Free Consultation</a>' +
+      '<button class="icon-btn nav-toggle" id="nav-toggle" aria-label="Open menu" aria-expanded="false">☰</button>' +
+      "</div></div>" +
+      '<div class="drawer" id="drawer" aria-hidden="true"><div class="drawer-veil" data-close></div>' +
+      '<div class="drawer-panel" role="dialog" aria-label="Site menu">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center"><b>Menu</b>' +
+      '<button class="icon-btn" data-close aria-label="Close menu">✕</button></div>' +
+      "<nav>" + drawerNav() + "</nav>" +
+      '<a class="btn btn-primary btn-block" href="quote.html">Get a Free Consultation</a>' +
+      '<div style="display:flex;gap:10px;margin-top:10px"><a class="btn btn-outline btn-sm" style="flex:1" href="' + C.phoneHref + '">📞 Call</a>' +
+      '<a class="btn btn-whatsapp btn-sm" style="flex:1" href="' + waLink() + '" target="_blank" rel="noopener">💬 WhatsApp</a></div>' +
+      "</div></div>";
+    var drawer = el.querySelector("#drawer");
+    var toggle = el.querySelector("#nav-toggle");
+    function setDrawer(open) {
+      drawer.classList.toggle("open", open);
+      drawer.setAttribute("aria-hidden", open ? "false" : "true");
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      document.body.style.overflow = open ? "hidden" : "";
+    }
+    toggle.addEventListener("click", function () { setDrawer(!drawer.classList.contains("open")); });
+    drawer.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", function () { setDrawer(false); }); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") setDrawer(false); });
+    /* theme */
+    var themeBtn = el.querySelector("#theme-btn");
+    function paintTheme() {
+      var dark = document.documentElement.getAttribute("data-theme") === "dark";
+      themeBtn.textContent = dark ? "☀️" : "🌙";
+    }
+    themeBtn.addEventListener("click", function () {
+      var dark = document.documentElement.getAttribute("data-theme") === "dark";
+      document.documentElement.setAttribute("data-theme", dark ? "light" : "dark");
+      try { localStorage.setItem("prixna_theme", dark ? "light" : "dark"); } catch (e) {}
+      paintTheme();
+    });
+    paintTheme();
+  }
+  /* ---------- footer ---------- */
+  function mountFooter() {
+    var el = document.getElementById("site-footer");
+    if (!el) return;
+    el.className = "site-footer";
+    var y = new Date().getFullYear();
+    el.innerHTML =
+      '<div class="footer-in">' +
+      '<div><div class="f-brand"><img src="' + C.logoUrl + '" alt="" width="40" height="40" onerror="this.style.display=\'none\'">Prixna IT Solution</div>' +
+      "<p class=\"small\">Complete business technology — software, hardware, installation and support from one trusted partner in Kathmandu, Nepal.</p>" +
+      '<p class="small">📍 ' + C.address + "<br>✉️ " + C.email + "<br>📞 " + C.phoneDisplay + "<br>🕒 " + C.hours + "</p>" +
+      '<p class="small"><a href="' + C.facebook + '" target="_blank" rel="noopener">Facebook</a> · <a href="' + C.reviewUrl + '" target="_blank" rel="noopener">Google Reviews</a> · <a href="' + C.jigriToolsUrl + '" target="_blank" rel="noopener">JigriTools</a></p></div>' +
+      '<div><h4>Software</h4><ul><li><a href="software-saas.html">Business Software & SaaS</a></li><li><a href="jigritools.html">JigriTools Suite</a></li><li><a href="custom-development.html">Custom Software & Websites</a></li><li><a href="accounting-erp-crm.html">Accounting, ERP & CRM</a></li><li><a href="attendance-payroll.html">Attendance & Payroll</a></li></ul></div>' +
+      '<div><h4>Hardware & Services</h4><ul><li><a href="shop.html">Shop All Products</a></li><li><a href="computers-laptops.html">Computers & Laptops</a></li><li><a href="cctv-security.html">CCTV & Security</a></li><li><a href="biometric-access.html">Biometric & Access</a></li><li><a href="repair-maintenance.html">Repair & Maintenance</a></li><li><a href="networking-servers.html">Networking & Servers</a></li></ul></div>' +
+      '<div><h4>Company</h4><ul><li><a href="about.html">About Us</a></li><li><a href="industries.html">Industries We Serve</a></li><li><a href="projects.html">Projects & Testimonials</a></li><li><a href="resources.html">Blog & Resources</a></li><li><a href="contact.html">Contact</a></li><li><a href="quote.html">Get a Free Consultation</a></li><li><a href="admin.html">Lead Inbox (staff)</a></li></ul></div>' +
+      "</div>" +
+      '<div class="f-bottom"><span>© ' + y + " " + C.name + ' All rights reserved.</span>' +
+      '<span><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Service</a></span></div>' +
+      '<a class="wa-float" href="' + waLink() + '" target="_blank" rel="noopener" aria-label="Chat on WhatsApp" data-track="wa_float">💬</a>';
+  }
+  /* ---------- reveal ---------- */
+  function mountReveal() {
+    if (!("IntersectionObserver" in window)) {
+      document.querySelectorAll(".rv").forEach(function (e) { e.classList.add("vis"); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add("vis"); io.unobserve(en.target); } });
+    }, { threshold: 0.12 });
+    document.querySelectorAll(".rv").forEach(function (e) { io.observe(e); });
+  }
+  /* ---------- UTM / source capture ---------- */
+  function captureSource() {
+    try {
+      var q = new URLSearchParams(location.search);
+      var src = {
+        utm_source: q.get("utm_source") || "", utm_medium: q.get("utm_medium") || "",
+        utm_campaign: q.get("utm_campaign") || "", referrer: document.referrer || "",
+        landing: location.pathname.split("/").pop() || "index.html", ts: new Date().toISOString()
+      };
+      var hasUtm = src.utm_source || src.utm_campaign;
+      if (hasUtm || !sessionStorage.getItem("prixna_src")) {
+        sessionStorage.setItem("prixna_src", JSON.stringify(src));
+      }
+    } catch (e) {}
+  }
+  function getSource() {
+    try { return JSON.parse(sessionStorage.getItem("prixna_src") || "{}"); }
+    catch (e) { return {}; }
+  }
+  /* ---------- event analytics (local-first, GA optional) ---------- */
+  function logEvent(name, detail) {
+    try {
+      var k = "prixna_events";
+      var arr = JSON.parse(localStorage.getItem(k) || "[]");
+      arr.push({ event: name, detail: detail || "", page: location.pathname.split("/").pop(), ts: new Date().toISOString() });
+      localStorage.setItem(k, JSON.stringify(arr.slice(-500)));
+    } catch (e) {}
+    if (window.gtag) { try { window.gtag("event", name, { detail: detail || "" }); } catch (e) {} }
+  }
+  function mountTracking() {
+    document.addEventListener("click", function (e) {
+      var t = e.target.closest("[data-track]");
+      if (t) logEvent("click:" + t.getAttribute("data-track"), t.href || t.textContent.trim().slice(0, 80));
+      var form = e.target.closest("form[data-lead-form]");
+      if (form && !form.dataset.startLogged) { form.dataset.startLogged = "1"; logEvent("form_start", form.dataset.form || "lead"); }
+    }, true);
+    if (C.analyticsId) {
+      var s = document.createElement("script");
+      s.async = true;
+      s.src = "https://www.googletagmanager.com/gtag/js?id=" + C.analyticsId;
+      document.head.appendChild(s);
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function () { window.dataLayer.push(arguments); };
+      window.gtag("js", new Date());
+      window.gtag("config", C.analyticsId);
+    }
+  }
+  /* ---------- boot ---------- */
+  document.addEventListener("DOMContentLoaded", function () {
+    mountHeader();
+    mountFooter();
+    mountReveal();
+    captureSource();
+    mountTracking();
+    var y = document.getElementById("year");
+    if (y) y.textContent = new Date().getFullYear();
+  });
+  window.PRIXNA_WA = waLink;
+  window.PRIXNA_SRC = getSource;
+  window.PRIXNA_LOG = logEvent;
+})();
