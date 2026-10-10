@@ -35,5 +35,19 @@ window.PRIXNA_DATA = {
     { icon: "⭐", title: "Google rating 4.5", text: "Based on 8 public Google reviews. Read or write a review via the link below." },
     { icon: "🧰", title: "Software + hardware together", text: "One team for supply, installation, integration and support." },
     { icon: "🆓", title: "Makers of JigriTools", text: "A free suite of 30+ online utilities, powered by Prixna IT Solution." }
-  ]
+  ],
+  // Homepage editable copy. Element hooks live in index.html as data-cms="key".
+  content: {
+    heroTitleA: "Complete Business Technology.",
+    heroTitleB: "One Trusted Partner.",
+    heroSub: "We connect software, hardware, and smart technology to help businesses simplify operations, improve productivity, and grow with confidence.",
+    ctaPrimary: "Get a Free Consultation",
+    ctaSecondary: "Explore Our Solutions",
+    finalTitle: "Let's Find the Right Technology for Your Business.",
+    finalSub: "Free consultation · Transparent NPR quotation · Support after installation. Serving Kathmandu Valley and businesses across Nepal."
+  },
+  // Extra homepage testimonials. Publish ONLY genuine, client-approved reviews.
+  // The two verified Google cards are hardcoded in index.html; approved items
+  // below are appended automatically. Keep empty until real ones arrive.
+  testimonials: []
 };
