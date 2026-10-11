@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-staff="1">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control Center | Prixna IT Solution (Staff)</title>
+<meta name="description" content="Staff control center: live KPIs, attention queue, pipeline, activity. Device-local.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0A1A38">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script>try{if(localStorage.getItem("prixna_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
+<style>
+.dash-grid{display:grid;gap:14px}
+.dash-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.dash-kpis .kpi{text-align:left}
+.dash-kpis .kpi b{font-size:1.6rem}
+.attn{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.attn .grow{flex:1;min-width:200px}
+.pipe-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.pipe-col{background:var(--bg-soft);border:1px solid var(--line);border-radius:12px;padding:10px;min-height:80px}
+.pipe-col h4{margin:0 0 8px;font-size:.85rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.feed{max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.live-dot{width:9px;height:9px;border-radius:50%;background:#22c55e;display:inline-block;box-shadow:0 0 0 4px rgba(34,197,94,.2)}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header id="site-header"></header>
+<main id="main">
+<section class="page-hero"><div class="container">
+<p class="crumb"><a href="index.html">Home</a> / Staff / Control Center</p>
+<h1>🎛️ Control Center <span class="small" style="font-weight:400"><span class="live-dot"></span> <span id="dash-clock">—</span> · <span id="dash-open">—</span></span></h1>
+<p id="dash-sync" class="small">Checking sync…</p>
+<div class="btn-row">
+<a class="btn btn-white btn-sm" href="admin.html">📥 Lead inbox</a>
+<a class="btn btn-white btn-sm" href="quote-pdf.html">🧾 New quote</a>
+<a class="btn btn-white btn-sm" href="bulk-quote.html">📦 Bulk form</a>
+<button class="btn btn-white btn-sm" id="dash-flush" type="button">🔄 Retry sync</button>
+<button class="btn btn-white btn-sm" id="dash-export" type="button">⬇ Export all</button>
+</div>
+</div></section>
+<section class="section"><div class="container dash-grid">
+<div class="dash-kpis" id="dash-kpis"></div>
+<div class="card" style="border-color:#F0DDB8;background:#FFFDF6" id="dash-attn-card">
+<b>⚡ Needs attention (<span id="dash-attn-n">0</span>)</b>
+<div id="dash-attn" style="margin-top:10px;display:flex;flex-direction:column;gap:10px"></div>
+</div>
+<div class="grid g2" style="align-items:start">
+<div class="card"><b>📅 Upcoming bookings</b><div id="dash-upcoming" style="margin-top:10px"></div></div>
+<div class="card"><b>⭐ Feedback & 📦 stock</b><div id="dash-side" style="margin-top:10px"></div></div>
+</div>
+<div class="card"><b>🔀 Lead pipeline</b><p class="small muted">Tap a lead to advance it. Writes back to the inbox instantly.</p><div class="pipe-cols" id="dash-pipe"></div></div>
+<div class="card"><b>🧾 Quotes & 💰 pipeline value</b><div id="dash-quotes" style="margin-top:10px"></div></div>
+<div class="card"><b>🕒 Live activity</b><div class="feed" id="dash-feed" style="margin-top:10px"></div></div>
+</div></section>
+</main>
+<footer id="site-footer"></footer>
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/prixna-auth.js"></script>
+<script src="js/prixna-stock.js"></script>
+<script src="js/prixna-quote.js"></script>
+<script src="js/prixna-analytics.js"></script>
+<script src="js/main.js"></script>
+<script src="js/leads.js"></script>
+<script src="js/prixna-dashboard.js"></script>
+</body>
+</html>

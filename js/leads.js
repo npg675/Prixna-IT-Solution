@@ -45,6 +45,8 @@
     } catch (e) {}
   }
   function forwardToEndpoint(lead) {
+    // Phase 2 autopilot: queue to Google Sheets backend (offline-safe) + legacy endpoint
+    try { if (window.PRIXNA_NOTIFY) window.PRIXNA_NOTIFY.push("lead", lead); } catch (e) {}
     var url = (window.PRIXNA || {}).formEndpoint;
     if (!url) return Promise.resolve({ skipped: true });
     return fetch(url, {

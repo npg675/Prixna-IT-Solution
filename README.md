@@ -1,7 +1,7 @@
 # Prixna IT Solution — Premium Business Technology Website
 
 Static, zero-dependency website for **Prixna IT Solution Pvt. Ltd.**
-(Jadibuti-32, Koteshwor, Kathmandu, Nepal). No build step, no database —
+(Koteshwor-32, Kathmandu, Nepal). No build step, no database —
 deploy the folder as-is to any shared hosting, cPanel, or GitHub Pages.
 
 ## Run locally
@@ -25,21 +25,6 @@ Any static server works. `file://` preview also works (no `fetch()` calls anywhe
 | Navigation / footer links | `js/main.js` → `NAV` array (single source) |
 
 Header, footer, and every lead form render from these files — edit once, update everywhere.
-
-## Admin panel (`admin.html`)
-
-No-code management for staff, in 7 tabs: **Dashboard** (KPIs + conversion events),
-**Leads** (pipeline, follow-ups, assignees, CSV/JSON), **Products** (full catalog CRUD —
-name, price/MRP in NPR, stock, category, warranty), **Testimonials** (add genuine,
-client-approved reviews; only approved ones show on the homepage), **Homepage content**
-(hero text, buttons, trust badges, final CTA), **Site settings** (phone, WhatsApp,
-email, address, hours, links, analytics/form endpoints), **Backup & publish**.
-
-How publishing works: edits apply instantly in the current browser (localStorage
-`prixna_cms_v1`, merged at runtime by `js/main.js`). To make them permanent and
-visible to all visitors: Backup tab → **Download data.js / config.js** → upload to
-hosting, replacing the old files (keep a copy first). Optional staff PIN lock lives
-in the Backup tab — a casual browser lock, not real security.
 
 ## Lead system
 

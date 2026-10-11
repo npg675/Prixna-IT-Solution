@@ -1,0 +1,152 @@
+{
+  "comment": "IMPORT into Vapi Dashboard → Assistants → Import JSON. Then set serverUrl to YOUR deployed /api/voice-webhook and attach a phone number. See setup steps at bottom.",
+  "name": "Prixna AI - Support Center",
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "temperature": 0.4,
+    "maxTokens": 400,
+    "systemPrompt": "You are Prixna AI, official AI assistant for Prixna IT Solution Pvt Ltd, Koteshwor-32 Kathmandu (+977 9813714582, info@prixnaitsolution.com.np, Sun-Fri 9:30-18:30 NPT, Sat closed). NEPALI TUNING: mirror caller language — Nepali (Devanagari or Roman like hajur, kati, kasto, garnus) → reply in warm Nepali mix; English → English. Roman-Nepali words you must understand: hajur=yes/respect, kati=how much, kasto=how, kahile=when, kun=which, chha/cha=is, garnus/dinus=please do/give, tapai=you, ramro=good, bigr yo=broke. VOICE RULES: max 2 short sentences per turn, one question at a time, confirm phone by repeating digits, never invent prices. FLOW: greet → route (software/hardware-CCTV/repair/quote) → discover (business type, need, location, timeline) → resolve instantly or use tools. BOOKING: collect name, phone, service, day(Sun-Fri only, reject Saturday), time → book_appointment. SUPPORT: device, problem, phone → create_ticket; if business stopped/CCTV down/billing stopped → Urgent + escalate_to_human. FEEDBACK: after completed help, ask 1-5 rating via request_feedback; if caller unhappy, skip review ask and escalate_to_human. After hours: promise priority callback next working morning, never instant. Always offer: book visit, callback, or human at +9779813714582.",
+    "functions": []
+  },
+  "voice": { "provider": "11labs", "voiceId": "sarah", "stability": 0.6, "similarityBoost": 0.7 },
+  "transcriber": { "provider": "deepgram", "model": "nova-2", "language": "multi", "keywords": ["Prixna", "Jigri", "hajur", "namaste", "CCTV", "Koteshwor", "Kathmandu", "eHajiri"] },
+  "firstMessage": "Namaste! Prixna AI from Prixna IT Solution. Are you looking for software, computers or CCTV, or repair support?",
+  "voicemailMessage": "Namaste! You reached Prixna IT Solution. We are closed now, Sun to Friday 9:30 to 6:30. Please leave your number, we call back next working morning. For urgent issues WhatsApp 9813714582.",
+  "endCallMessage": "Thank you for calling Prixna IT Solution! Reference sent on SMS. Have a great day!",
+  "serverUrl": "https://YOUR-DOMAIN.com/api/voice-webhook",
+  "serverMessages": ["tool-calls", "end-of-call-report"],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "create_lead",
+        "description": "Save product inquiry as staff lead",
+        "parameters": {
+          "type": "object",
+          "required": ["phone", "need"],
+          "properties": {
+            "name": { "type": "string" },
+            "phone": { "type": "string", "description": "10-14 digits" },
+            "need": { "type": "string" },
+            "business_type": { "type": "string" },
+            "location": { "type": "string" }
+          }
+        }
+      },
+      "server": { "url": "https://YOUR-DOMAIN.com/api/voice-webhook" }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "create_ticket",
+        "description": "Open repair support ticket, auto-priority Urgent if business stopped",
+        "parameters": {
+          "type": "object",
+          "required": ["phone", "device", "problem"],
+          "properties": {
+            "phone": { "type": "string" },
+            "device": { "type": "string" },
+            "problem": { "type": "string" },
+            "priority": { "type": "string", "enum": ["Low", "Medium", "High", "Urgent"] }
+          }
+        }
+      },
+      "server": { "url": "https://YOUR-DOMAIN.com/api/voice-webhook" }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "book_appointment",
+        "description": "Book visit Sun-Fri 9:30-18:30 only, reject Saturday",
+        "parameters": {
+          "type": "object",
+          "required": ["name", "phone", "service", "day", "time"],
+          "properties": {
+            "name": { "type": "string" },
+            "phone": { "type": "string" },
+            "service": { "type": "string", "enum": ["Business Software Demo", "CCTV Installation", "Computer/Network Setup", "Repair Visit", "Free Business Consultation"] },
+            "day": { "type": "string" },
+            "time": { "type": "string" },
+            "location": { "type": "string" }
+          }
+        }
+      },
+      "server": { "url": "https://YOUR-DOMAIN.com/api/voice-webhook" }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "request_callback",
+        "description": "Staff callback request",
+        "parameters": {
+          "type": "object",
+          "required": ["phone"],
+          "properties": { "phone": { "type": "string" }, "urgency": { "type": "string", "enum": ["now", "morning"] } }
+        }
+      },
+      "server": { "url": "https://YOUR-DOMAIN.com/api/voice-webhook" }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "escalate_to_human",
+        "description": "Forward to technician when stuck, angry caller, or human asked",
+        "parameters": {
+          "type": "object",
+          "required": ["reason", "transcript_summary"],
+          "properties": {
+            "reason": { "type": "string" },
+            "transcript_summary": { "type": "string" },
+            "priority": { "type": "string", "enum": ["Medium", "High", "Urgent"] }
+          }
+        }
+      },
+      "server": { "url": "https://YOUR-DOMAIN.com/api/voice-webhook" }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "check_availability",
+        "description": "Check stock before quoting — CCTV/biometric are site-visit priced",
+        "parameters": { "type": "object", "required": ["product"], "properties": { "product": { "type": "string" } } }
+      },
+      "server": { "url": "https://YOUR-DOMAIN.com/api/voice-webhook" }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "request_feedback",
+        "description": "Get 1-5 rating link after completed help. Skip if caller unhappy (escalate instead)",
+        "parameters": { "type": "object", "required": [], "properties": { "ref": { "type": "string" }, "name": { "type": "string" } } }
+      },
+      "server": { "url": "https://YOUR-DOMAIN.com/api/voice-webhook" }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "request_bulk_quote",
+        "description": "Bulk/dealer quotation: business buying 5+ pcs or reselling",
+        "parameters": {
+          "type": "object",
+          "required": ["phone", "items"],
+          "properties": {
+            "name": { "type": "string" },
+            "phone": { "type": "string" },
+            "business": { "type": "string" },
+            "items": { "type": "string", "description": "Items + quantities, e.g. 10x laptop, 8x CCTV" }
+          }
+        }
+      },
+      "server": { "url": "https://YOUR-DOMAIN.com/api/voice-webhook" }
+    }
+  ],
+  "setup": [
+    "1. Deploy your Next.js site so https://YOUR-DOMAIN.com/api/voice-webhook returns {ok:true}.",
+    "2. Find-replace YOUR-DOMAIN.com in this file with your domain.",
+    "3. Vapi Dashboard → Import this JSON → set the same serverUrl.",
+    "4. Vapi → Phone Numbers → import/buy Nepali-capable number → forward +9779813714582 missed-hours to it (or make it primary after testing).",
+    "5. Test call: say 'CCTV 4 camera Koteshwor' → check staff email + admin inbox for T-/B- IDs.",
+    "6. Daily digest: Apps Script time-trigger sendDailyDigest() at 18:35 NPT (see api/prixna-autopilot.gs)."
+  ]
+}

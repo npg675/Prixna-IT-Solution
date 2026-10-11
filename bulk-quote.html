@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bulk & Dealer Pricing | Prixna IT Solution, Kathmandu</title>
+<meta name="description" content="Wholesale, dealer and bulk pricing for retail shops, schools, corporate offices and resellers: laptops, computers, CCTV security, biometric, networking, and SSDs in quantity. Get an itemised NPR quotation.">
+<link rel="canonical" href="https://prixnaitsolution.com.np/bulk-quote.html">
+<meta name="theme-color" content="#0A1A38">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script>try{if(localStorage.getItem("prixna_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
+<style>
+/* Modern styling enhancements for Bulk Quote Easy UI */
+.bq-hero{padding:54px 0 38px;background:linear-gradient(165deg,var(--navy-950) 0%,var(--navy-900) 60%,var(--navy-800) 100%);color:#fff;position:relative;overflow:hidden}
+.bq-hero::after{content:"";position:absolute;inset:0;background:radial-gradient(750px 320px at 85% 20%,rgba(59,134,246,.25),transparent 70%);pointer-events:none}
+.bq-hero-in{max-width:var(--maxw);margin:0 auto;padding:0 22px;position:relative;z-index:1}
+.bq-badges{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 8px}
+.bq-badge{font-size:.82rem;font-weight:600;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);padding:6px 14px;border-radius:999px;color:#DCE6FA;display:inline-flex;align-items:center;gap:6px}
+.bq-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px;box-shadow:var(--shadow-sm);margin-bottom:22px;transition:border-color .15s ease}
+.bq-card-title{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px}
+
+/* Presets bar */
+.presets-wrap{margin-bottom:18px;padding:12px 14px;background:var(--bg-soft);border:1px dashed var(--line);border-radius:14px}
+.presets-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:8px}
+.preset-btn{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:.82rem;font-weight:600;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:8px;text-align:left;transition:all .15s ease}
+.preset-btn:hover{border-color:var(--blue-500);background:var(--bg-tint);transform:translateY(-1px);box-shadow:var(--shadow-sm)}
+.preset-btn span.emoji{font-size:1.15rem;flex:none}
+
+/* Search & filter */
+.catalog-toolbar{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.search-inp-wrap{position:relative}
+.search-inp-wrap input{width:100%;padding:10px 14px 10px 38px;border:1.5px solid var(--line);border-radius:10px;font:inherit;font-size:.88rem;background:var(--bg);color:var(--ink)}
+.search-inp-wrap input:focus{border-color:var(--blue-500);outline:none}
+.search-inp-wrap .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.95rem;pointer-events:none}
+.cat-chips{display:flex;gap:7px;flex-wrap:wrap}
+.cat-chip{font-size:.8rem;font-weight:600;padding:6px 12px;border-radius:999px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;transition:all .15s ease}
+.cat-chip:hover{border-color:var(--blue-500);background:var(--bg-tint)}
+.cat-chip.active{background:var(--blue-600);color:#fff;border-color:var(--blue-600)}
+
+/* Quick items grid */
+.quick-items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:10px;margin-bottom:20px;max-height:360px;overflow-y:auto;padding-right:4px}
+.q-item-card{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--bg-soft);cursor:pointer;transition:all .15s ease;display:flex;flex-direction:column;justify-content:space-between;text-align:left;position:relative}
+.q-item-card:hover{border-color:var(--blue-500);background:var(--card);transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+.q-item-card.is-added{border-color:var(--green-500);background:rgba(34,163,85,.05)}
+.q-item-title{font-size:.86rem;font-weight:700;color:var(--ink);margin-bottom:3px;line-height:1.35}
+.q-item-sub{font-size:.76rem;color:var(--muted);margin-bottom:8px;line-height:1.3}
+.q-item-meta{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px;border-top:1px dashed var(--line)}
+.q-item-price{font-size:.74rem;font-weight:700;color:var(--muted)}
+.q-item-add{font-size:.78rem;font-weight:700;color:var(--blue-600);display:flex;align-items:center;gap:4px}
+.q-item-badge{position:absolute;top:8px;right:8px;font-size:.68rem;font-weight:700;background:var(--green-500);color:#fff;padding:2px 7px;border-radius:999px}
+
+/* Selected items table */
+.selected-table-wrap{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:14px;background:var(--card)}
+.selected-table{width:100%;border-collapse:collapse;font-size:.88rem}
+.selected-table th{background:var(--bg-soft);padding:10px 14px;font-weight:700;text-align:left;border-bottom:1px solid var(--line);font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.selected-table td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+.selected-table tr:last-child td{border-bottom:none}
+.qty-ctrl{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:8px;background:var(--card);overflow:hidden}
+.qty-btn{width:32px;height:32px;background:transparent;border:none;cursor:pointer;font-weight:800;font-size:1.05rem;color:var(--ink);display:flex;align-items:center;justify-content:center;transition:background .15s ease}
+.qty-btn:hover{background:var(--bg-tint);color:var(--blue-600)}
+.qty-val{width:46px;height:32px;border:none;border-left:1px solid var(--line);border-right:1px solid var(--line);text-align:center;font-weight:700;font-size:.88rem;color:var(--ink);background:transparent}
+.unit-sel{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:.82rem;background:var(--card);color:var(--ink)}
+.item-del{background:transparent;border:none;color:#DC2626;cursor:pointer;font-size:1.1rem;padding:4px 8px;border-radius:6px;transition:background .15s ease}
+.item-del:hover{background:rgba(220,38,38,.1)}
+
+/* Mode Toggle */
+.mode-toggle{display:inline-flex;border:1px solid var(--line);border-radius:10px;background:var(--bg-soft);padding:3px}
+.mode-toggle button{border:none;background:transparent;padding:6px 14px;border-radius:8px;font-size:.82rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s ease}
+.mode-toggle button.active{background:var(--card);color:var(--blue-600);box-shadow:var(--shadow-sm)}
+
+/* Location Chips */
+.loc-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.loc-chip{font-size:.76rem;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--bg-soft);color:var(--muted);cursor:pointer;transition:all .15s ease}
+.loc-chip:hover{border-color:var(--blue-500);color:var(--blue-600);background:var(--bg-tint)}
+
+/* Progress slab */
+.slab-meter{background:var(--bg-soft);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.slab-bar-wrap{height:8px;background:var(--line);border-radius:999px;overflow:hidden;margin:8px 0 6px}
+.slab-bar{height:100%;background:linear-gradient(90deg,var(--blue-600),var(--green-500));border-radius:999px;transition:width .3s ease}
+.slab-status{font-size:.79rem;font-weight:700;color:var(--ink);display:flex;align-items:center;justify-content:space-between}
+
+/* Sidebar perks */
+.sidebar-perks{display:grid;gap:10px;margin-top:12px}
+.perk-item{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--bg-soft);border:1px solid var(--line)}
+.perk-icon{font-size:1.25rem;line-height:1}
+.perk-text b{display:block;font-size:.85rem;color:var(--ink);margin-bottom:1px}
+.perk-text span{font-size:.76rem;color:var(--muted);line-height:1.35;display:block}
+
+/* Responsive tweaks */
+@media(max-width:960px){
+  .bq-grid{grid-template-columns:1fr!important}
+  .sticky-side{position:static!important;top:auto!important}
+}
+@media(max-width:640px){
+  .selected-table th:nth-child(3), .selected-table td:nth-child(3){display:none}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header id="site-header"></header>
+
+<main id="main">
+<!-- Hero Section -->
+<section class="bq-hero">
+  <div class="bq-hero-in">
+    <p class="crumb" style="color:#A7BCE4"><a href="index.html" style="color:#D5E3FC">Home</a> / Bulk & Dealer Pricing</p>
+    <h1 style="color:#fff;margin:8px 0 12px;font-size:clamp(1.9rem,4vw,2.7rem)">📦 Bulk & Dealer Pricing Calculator</h1>
+    <p style="color:#C2D1EE;font-size:1.08rem;max-width:700px;line-height:1.55">
+      For retail shops, schools, corporate offices, resellers, and contractors. Pick items or paste your list to get an itemised wholesale NPR quotation with official IRD VAT invoicing, manufacturer warranty, and free Kathmandu delivery.
+    </p>
+    <div class="bq-badges">
+      <span class="bq-badge">🏷️ Volume Dealer Slabs (5+ units)</span>
+      <span class="bq-badge">🚚 Free Valley Delivery</span>
+      <span class="bq-badge">🔍 Free On-Site Cabling Survey</span>
+      <span class="bq-badge">📄 Official 13% IRD VAT Bill</span>
+      <span class="bq-badge">⚡ 60-Minute Quote Turnaround</span>
+    </div>
+    <div class="btn-row" style="margin-top:20px">
+      <a class="btn btn-white btn-sm" href="tel:+9779813714582">📞 Call Hotline: +977 9813714582</a>
+      <a class="btn btn-whatsapp btn-sm" href="https://wa.me/9779813714582?text=Hello%20Prixna!%20I%20am%20inquiring%20about%20bulk%20and%20dealer%20pricing." target="_blank" rel="noopener">💬 Direct WhatsApp Inquiry</a>
+    </div>
+  </div>
+</section>
+
+<!-- Main Quotation Builder Section -->
+<section class="section" style="padding-top:36px;padding-bottom:60px">
+  <div class="container">
+    <div class="grid bq-grid" style="grid-template-columns:1.3fr .7fr;align-items:start;gap:30px">
+      
+      <!-- LEFT: EASY UI INTERACTIVE ITEM BUILDER & FORM -->
+      <div>
+        <!-- STEP 1: ITEM SELECTION -->
+        <div class="bq-card">
+          <div class="bq-card-title">
+            <div>
+              <h3 style="margin:0;font-size:1.25rem">Step 1: Select Your Bulk Items</h3>
+              <p class="small muted" style="margin:4px 0 0">Click popular items or load 1-click packages to customize quantities.</p>
+            </div>
+            <div class="mode-toggle">
+              <button type="button" id="tab-visual" class="active" onclick="setMode('visual')">⚡ Visual Item Picker</button>
+              <button type="button" id="tab-text" onclick="setMode('text')">📝 Paste Text List</button>
+            </div>
+          </div>
+
+          <!-- Visual Picker Mode -->
+          <div id="mode-visual-box">
+            
+            <!-- 1-Click Starter Packages -->
+            <div class="presets-wrap">
+              <div style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">
+                🚀 1-Click Starter Packages (Loads instantly)
+              </div>
+              <div class="presets-grid">
+                <button type="button" class="preset-btn" onclick="loadPackagePreset('office10')">
+                  <span class="emoji">🏢</span>
+                  <div><b>10-User Office IT Setup</b><br><small style="color:var(--muted)">10 Laptops, Wi-Fi, Biometric</small></div>
+                </button>
+                <button type="button" class="preset-btn" onclick="loadPackagePreset('cctv8')">
+                  <span class="emoji">🎥</span>
+                  <div><b>8-Cam Mart & Security Pack</b><br><small style="color:var(--muted)">4 Dome, 4 Bullet, 8CH DVR+2TB</small></div>
+                </button>
+                <button type="button" class="preset-btn" onclick="loadPackagePreset('reseller')">
+                  <span class="emoji">⚡</span>
+                  <div><b>IT Shop Reseller Restock</b><br><small style="color:var(--muted)">10x SSD, 10x RAM, 5x Routers</small></div>
+                </button>
+                <button type="button" class="preset-btn" onclick="loadPackagePreset('pos')">
+                  <span class="emoji">🛒</span>
+                  <div><b>Retail Mart Billing POS</b><br><small style="color:var(--muted)">ERP software, thermal printer, scan</small></div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Search & Category Filters -->
+            <div class="catalog-toolbar">
+              <div class="search-inp-wrap">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="cat-search" placeholder="Filter products (e.g. Dell, Hikvision, NVMe SSD, Biometric, Router...)" oninput="filterSearch(this.value)">
+              </div>
+              <div class="cat-chips" id="cat-chips">
+                <button type="button" class="cat-chip active" onclick="filterCat('all', this)">🔥 All Popular Items</button>
+                <button type="button" class="cat-chip" onclick="filterCat('laptops', this)">💻 Laptops & PCs</button>
+                <button type="button" class="cat-chip" onclick="filterCat('cctv', this)">🎥 CCTV Security</button>
+                <button type="button" class="cat-chip" onclick="filterCat('upgrades', this)">⚡ SSD & RAM</button>
+                <button type="button" class="cat-chip" onclick="filterCat('networking', this)">🌐 Networking</button>
+                <button type="button" class="cat-chip" onclick="filterCat('biometric', this)">👤 Attendance</button>
+                <button type="button" class="cat-chip" onclick="filterCat('software', this)">💼 Software/POS</button>
+              </div>
+            </div>
+
+            <!-- Quick Add Grid -->
+            <div class="quick-items-grid" id="quick-grid">
+              <!-- Rendered via JS -->
+            </div>
+
+            <!-- Selected Items Table -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin:18px 0 8px;flex-wrap:wrap;gap:8px">
+              <h4 style="font-size:1rem;margin:0">
+                Your Selected Bulk Items (<span id="item-count">0</span>)
+              </h4>
+              <div style="display:flex;gap:6px">
+                <button type="button" onclick="addCustomRow()" class="btn btn-outline btn-sm" style="padding:4px 10px;font-size:.78rem;min-height:30px">+ Custom Row</button>
+                <button type="button" onclick="clearAllItems()" class="btn btn-outline btn-sm" style="padding:4px 10px;font-size:.78rem;min-height:30px;color:var(--muted)">🗑️ Clear</button>
+              </div>
+            </div>
+
+            <div class="selected-table-wrap">
+              <table class="selected-table">
+                <thead>
+                  <tr>
+                    <th>Item Description</th>
+                    <th style="width:130px;text-align:center">Quantity</th>
+                    <th style="width:90px">Unit</th>
+                    <th style="width:40px"></th>
+                  </tr>
+                </thead>
+                <tbody id="selected-tbody">
+                  <!-- Selected items rows -->
+                </tbody>
+              </table>
+              <div id="empty-state" style="padding:28px 16px;text-align:center;color:var(--muted);font-size:.88rem">
+                🛒 No items in list yet. Click any popular product above or load a starter package!
+              </div>
+            </div>
+          </div>
+
+          <!-- Raw Text Paste Mode -->
+          <div id="mode-text-box" style="display:none">
+            <label class="flab" for="b-raw-items">Paste or type your product list with quantities:</label>
+            <textarea class="inp" id="b-raw-items" rows="7" placeholder="e.g.&#10;10x Dell Inspiron 15 Core i5 Laptop for office&#10;8x Hikvision 2MP Outdoor Bullet CCTV&#10;1x Hikvision 8CH DVR + 2TB Hard Drive&#10;5x Kingston 512GB NVMe SSD&#10;2x TP-Link Gigabit Wi-Fi Router"></textarea>
+            <p class="small muted" style="margin-top:6px">Tip: You can paste items copied directly from WhatsApp, Excel sheets, or email.</p>
+          </div>
+        </div>
+
+        <!-- STEP 2: CLIENT & DELIVERY INFORMATION -->
+        <div class="bq-card">
+          <h3 style="margin-top:0;font-size:1.25rem">Step 2: Contact & Quotation Details</h3>
+          <p class="small muted" style="margin-bottom:16px">
+            We will prepare an official itemized NPR quotation and send the PDF quote directly to your email and WhatsApp.
+          </p>
+
+          <div class="f-grid">
+            <div class="f-item">
+              <label class="flab req" for="b-name">Contact Person / Full Name</label>
+              <input class="inp" id="b-name" placeholder="e.g. Ramesh Shrestha" required>
+            </div>
+            <div class="f-item">
+              <label class="flab req" for="b-phone">Mobile / WhatsApp Number</label>
+              <input class="inp" id="b-phone" inputmode="tel" placeholder="98XXXXXXXX" required>
+            </div>
+            <div class="f-item">
+              <label class="flab req" for="b-email">Email Address (For Official PDF Quote)</label>
+              <input class="inp" id="b-email" type="email" placeholder="e.g. ramesh@company.com" required>
+            </div>
+            <div class="f-item">
+              <label class="flab" for="b-biz">Business / Organization Name</label>
+              <input class="inp" id="b-biz" placeholder="e.g. Sharma Supermarket / Apex College">
+            </div>
+            <div class="f-item">
+              <label class="flab" for="b-type">Business / Buyer Category</label>
+              <select class="inp" id="b-type">
+                <option value="Retail Mart / Shop">Retail Mart / Shop / Supermarket</option>
+                <option value="Corporate Office / Startup">Corporate Office / Startup</option>
+                <option value="School / College / Lab">School / College / Educational Lab</option>
+                <option value="Reseller / IT Dealer / Contractor">Reseller / IT Dealer / Electrical Contractor</option>
+                <option value="Restaurant / Hotel">Restaurant / Hotel / Hospitality</option>
+                <option value="Personal / Individual Bulk Buyer">Personal / Individual Bulk Buyer</option>
+              </select>
+            </div>
+            <div class="f-item">
+              <label class="flab" for="b-loc">Delivery Location / City</label>
+              <input class="inp" id="b-loc" placeholder="e.g. Koteshwor, Kathmandu">
+              <div class="loc-chips">
+                <button type="button" class="loc-chip" onclick="setLoc('Koteshwor')">Koteshwor</button>
+                <button type="button" class="loc-chip" onclick="setLoc('New Baneshwor')">New Baneshwor</button>
+                <button type="button" class="loc-chip" onclick="setLoc('Lalitpur')">Lalitpur</button>
+                <button type="button" class="loc-chip" onclick="setLoc('Bhaktapur')">Bhaktapur</button>
+                <button type="button" class="loc-chip" onclick="setLoc('Outside Valley')">Outside Valley</button>
+              </div>
+            </div>
+            <div class="f-item f-full">
+              <label class="flab" for="b-notes">Special Requirements / Free Site Inspection</label>
+              <input class="inp" id="b-notes" placeholder="e.g. Need on-site CCTV cable survey, need 13% VAT bill, urgent delivery in 2 days">
+            </div>
+            <label class="consent f-full" style="margin-top:6px">
+              <input type="checkbox" id="b-consent" checked>
+              <span>I agree to be contacted with an official itemized quotation. (Required)</span>
+            </label>
+            <div class="f-full" style="margin-top:8px">
+              <button class="btn btn-primary btn-block btn-lg" id="b-send" type="button" style="font-size:1.05rem">
+                Get Wholesale Quotation Now →
+              </button>
+            </div>
+          </div>
+
+          <div id="b-out" style="margin-top:16px"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: ORDER SUMMARY & WHOLESALE PERKS -->
+      <div>
+        <!-- Live Selected Items Summary Card -->
+        <div class="bq-card sticky-side" style="border-color:var(--blue-500);position:sticky;top:86px">
+          <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:14px">
+            <h4 style="margin:0;font-size:1.05rem">📋 Bulk Request Summary</h4>
+            <span class="pill" id="summary-pill" style="font-size:.76rem;background:var(--blue-100);color:var(--blue-700);padding:4px 10px;border-radius:999px;font-weight:700">0 Items</span>
+          </div>
+
+          <!-- Dynamic Volume Slab Meter -->
+          <div class="slab-meter">
+            <div class="slab-status">
+              <span id="slab-title">Tier: Standard Enquiry</span>
+              <span id="slab-pct" style="color:var(--blue-600)">0 / 5 units</span>
+            </div>
+            <div class="slab-bar-wrap">
+              <div class="slab-bar" id="slab-bar" style="width:0%"></div>
+            </div>
+            <div id="slab-desc" style="font-size:.74rem;color:var(--muted);margin-top:4px">
+              Order 5+ items to activate wholesale dealer discounts.
+            </div>
+          </div>
+
+          <div id="live-summary-list" style="max-height:200px;overflow-y:auto;font-size:.84rem;color:var(--muted);margin-bottom:14px;padding-right:4px">
+            No items added yet. Click items on the left to build your list.
+          </div>
+
+          <div style="border-top:1px solid var(--line);padding-top:14px">
+            <h4 style="margin:0 0 10px;font-size:.9rem">💎 Prixna Bulk Buyer Advantages</h4>
+            <div class="sidebar-perks">
+              <div class="perk-item">
+                <span class="perk-icon">🏷️</span>
+                <div class="perk-text">
+                  <b>Tiered Volume Discount</b>
+                  <span>Direct distributor and dealer rates applied for orders of 5+ units.</span>
+                </div>
+              </div>
+              <div class="perk-item">
+                <span class="perk-icon">🔍</span>
+                <div class="perk-text">
+                  <b>Free Site Inspection</b>
+                  <span>Our engineers visit your site for CCTV, Wi-Fi & biometric cabling layout.</span>
+                </div>
+              </div>
+              <div class="perk-item">
+                <span class="perk-icon">🚚</span>
+                <div class="perk-text">
+                  <b>Safe Valley Delivery</b>
+                  <span>Express doorstep delivery across Kathmandu, Lalitpur, and Bhaktapur.</span>
+                </div>
+              </div>
+              <div class="perk-item">
+                <span class="perk-icon">🛡️</span>
+                <div class="perk-text">
+                  <b>100% Genuine with Warranty</b>
+                  <span>Brand new products with official VAT invoices and manufacturer warranty.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:18px;padding:12px;background:var(--bg-soft);border-radius:12px;text-align:center">
+            <p class="small muted" style="margin:0 0 8px;font-size:.82rem">Need to speak with sales right now?</p>
+            <div style="display:flex;gap:8px">
+              <a href="tel:+9779813714582" class="btn btn-outline btn-block btn-sm" style="font-size:.82rem;padding:8px">📞 Call Hotline</a>
+              <a href="https://wa.me/9779813714582?text=Hello%20Prixna!%20I%20have%20a%20bulk%20enquiry." target="_blank" rel="noopener" class="btn btn-whatsapp btn-block btn-sm" style="font-size:.82rem;padding:8px">💬 WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script src="js/leads.js"></script>
+<script src="js/prixna-notify.js"></script>
+<script>
+(function(){
+  // Popular bulk catalog items with indicative wholesale rates
+  var CATALOG = [
+    { id:"c1", name:"Dell Inspiron 15 (Core i5, 16GB RAM, 512GB SSD)", cat:"laptops", defQty:5, unit:"Units", sub:"Standard office & student multitasker", priceEst:"From Rs. 72,000" },
+    { id:"c2", name:"HP 250 G9 Business Laptop (Core i3, 8GB, 256GB)", cat:"laptops", defQty:5, unit:"Units", sub:"Affordable billing & data entry fleet", priceEst:"From Rs. 48,000" },
+    { id:"c3", name:"Lenovo ThinkPad E14 (Core i7, 16GB, 512GB SSD)", cat:"laptops", defQty:2, unit:"Units", sub:"Executive military-grade business laptop", priceEst:"From Rs. 105,000" },
+    { id:"c4", name:"Asus Vivobook 15 (Ryzen 5, 16GB RAM, 512GB SSD)", cat:"laptops", defQty:5, unit:"Units", sub:"Modern thin & light office workstation", priceEst:"From Rs. 68,000" },
+    { id:"c5", name:"Hikvision 2MP HD Indoor Dome Night Vision Camera", cat:"cctv", defQty:8, unit:"Pcs", sub:"Wide angle 1080p indoor coverage", priceEst:"From Rs. 2,350" },
+    { id:"c6", name:"Hikvision 2MP HD Outdoor Weatherproof Bullet Camera", cat:"cctv", defQty:8, unit:"Pcs", sub:"Metal weatherproof IP67 night vision", priceEst:"From Rs. 2,650" },
+    { id:"c7", name:"Hikvision 5MP ColorVu 24/7 Full Color Camera", cat:"cctv", defQty:4, unit:"Pcs", sub:"Vivid night color security camera", priceEst:"From Rs. 3,900" },
+    { id:"c8", name:"Hikvision 8-Channel Turbo HD DVR + 2TB Surveillance HDD", cat:"cctv", defQty:1, unit:"Set", sub:"Continuous recording & mobile live view", priceEst:"From Rs. 16,500" },
+    { id:"c9", name:"High-Speed NVMe M.2 512GB SSD (Kingston/Lexar)", cat:"upgrades", defQty:10, unit:"Pcs", sub:"Up to 3500MB/s PC/laptop speed booster", priceEst:"From Rs. 4,200" },
+    { id:"c10", name:"High-Speed NVMe M.2 1TB SSD (Crucial/Kingston)", cat:"upgrades", defQty:5, unit:"Pcs", sub:"PCIe Gen 4 high capacity fast storage", priceEst:"From Rs. 8,200" },
+    { id:"c11", name:"Laptop RAM 8GB DDR4 3200MHz (Crucial)", cat:"upgrades", defQty:10, unit:"Pcs", sub:"Smooth multitasking memory for laptops", priceEst:"From Rs. 2,800" },
+    { id:"c12", name:"Desktop RAM 16GB DDR4 3200MHz (Kingston Fury)", cat:"upgrades", defQty:5, unit:"Pcs", sub:"High performance desktop upgrade", priceEst:"From Rs. 5,400" },
+    { id:"c13", name:"TP-Link Archer C6 Gigabit Dual-Band AC1200 Wi-Fi Router", cat:"networking", defQty:5, unit:"Pcs", sub:"High speed mesh & multi-device router", priceEst:"From Rs. 3,600" },
+    { id:"c14", name:"Cat6 Pure Copper High-Speed Network Cable (305m Roll)", cat:"networking", defQty:2, unit:"Rolls", sub:"Structured LAN cabling for offices & CCTV", priceEst:"From Rs. 11,500" },
+    { id:"c15", name:"TP-Link 16-Port Gigabit Rackmount Switch", cat:"networking", defQty:2, unit:"Units", sub:"High speed unmanaged office switch", priceEst:"From Rs. 7,800" },
+    { id:"c16", name:"Biometric Face + Fingerprint Recognition Attendance Device", cat:"biometric", defQty:2, unit:"Units", sub:"Cloud attendance & payroll sync", priceEst:"From Rs. 14,500" },
+    { id:"c17", name:"RFID Access Control Door Lock + Exit Button Set", cat:"biometric", defQty:2, unit:"Sets", sub:"Complete office secure door entry kit", priceEst:"From Rs. 18,000" },
+    { id:"c18", name:"Jigri ERP Billing & Inventory Software (Annual License)", cat:"software", defQty:1, unit:"Lic", sub:"VAT/Non-VAT billing, stock & ledger", priceEst:"From Rs. 15,000" },
+    { id:"c19", name:"Restaurant POS Billing + Kitchen KOT Thermal Printer Set", cat:"software", defQty:1, unit:"Set", sub:"Fast billing for cafes & restaurants", priceEst:"From Rs. 22,000" },
+    { id:"c20", name:"High-Speed Barcode Scanner with USB Auto-Stand", cat:"software", defQty:2, unit:"Pcs", sub:"1D/2D QR scanner for retail checkout", priceEst:"From Rs. 3,800" }
+  ];
+
+  var state = {
+    mode: "visual",
+    activeCat: "all",
+    searchQuery: "",
+    items: [
+      { name: "Dell Inspiron 15 (Core i5, 16GB RAM, 512GB SSD)", qty: 5, unit: "Units" },
+      { name: "Hikvision 2MP HD Indoor Dome Night Vision Camera", qty: 8, unit: "Pcs" }
+    ]
+  };
+
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+
+  // Render quick add catalog cards
+  function renderQuickGrid(){
+    var container = document.getElementById("quick-grid");
+    if(!container) return;
+    var q = state.searchQuery.toLowerCase().trim();
+    var list = CATALOG.filter(function(it){
+      var matchCat = state.activeCat === "all" || it.cat === state.activeCat;
+      var matchSearch = !q || it.name.toLowerCase().includes(q) || it.sub.toLowerCase().includes(q);
+      return matchCat && matchSearch;
+    });
+
+    if(!list.length){
+      container.innerHTML = '<div style="grid-column:1/-1;padding:24px;text-align:center;color:var(--muted);font-size:.86rem">No products found matching "' + esc(state.searchQuery) + '". Try searching something else or add a custom row below!</div>';
+      return;
+    }
+
+    container.innerHTML = list.map(function(it){
+      var existing = state.items.find(function(x){ return x.name === it.name; });
+      var badge = existing ? '<span class="q-item-badge">✓ ' + existing.qty + ' in list</span>' : '';
+      var cardCls = existing ? "q-item-card is-added" : "q-item-card";
+
+      return '<div class="' + cardCls + '" onclick="window.bulkAddCatalog(\''+it.id+'\')">' +
+        badge +
+        '<div>' +
+          '<div class="q-item-title">'+esc(it.name)+'</div>' +
+          '<div class="q-item-sub">'+esc(it.sub)+'</div>' +
+        '</div>' +
+        '<div class="q-item-meta">' +
+          '<span class="q-item-price">'+esc(it.priceEst||"Wholesale")+'</span>' +
+          '<div class="q-item-add"><span>+ Add</span> <small style="color:var(--muted)">('+it.defQty+' '+it.unit+')</small></div>' +
+        '</div>' +
+      '</div>';
+    }).join("");
+  }
+
+  // Update volume discount progress bar
+  function updateVolumeSlab(totalQty){
+    var titleEl = document.getElementById("slab-title");
+    var pctEl = document.getElementById("slab-pct");
+    var barEl = document.getElementById("slab-bar");
+    var descEl = document.getElementById("slab-desc");
+    if(!titleEl || !pctEl || !barEl || !descEl) return;
+
+    if(totalQty >= 15){
+      titleEl.innerHTML = '🏆 <b>Corporate VIP Slab Active!</b>';
+      pctEl.textContent = totalQty + " units (Max Discount)";
+      barEl.style.width = "100%";
+      descEl.textContent = "Maximum distributor margin + Free on-site survey + Priority Kathmandu delivery.";
+    } else if(totalQty >= 5){
+      titleEl.innerHTML = '🏷️ <b>Tier-1 Dealer Wholesale Active!</b>';
+      var p = Math.min(100, Math.round(((totalQty - 5) / 10) * 50 + 50));
+      pctEl.textContent = totalQty + " / 15 for VIP";
+      barEl.style.width = p + "%";
+      descEl.textContent = "Volume discount applied! Add " + (15 - totalQty) + " more for Corporate VIP pricing.";
+    } else {
+      titleEl.innerHTML = '💡 <b>Standard Volume Enquiry</b>';
+      var p0 = Math.round((totalQty / 5) * 50);
+      pctEl.textContent = totalQty + " / 5 units";
+      barEl.style.width = p0 + "%";
+      descEl.textContent = "Add " + (5 - totalQty) + " more unit(s) to unlock Tier-1 Dealer Wholesale Pricing.";
+    }
+  }
+
+  // Render selected items table
+  function renderSelectedTable(){
+    var tbody = document.getElementById("selected-tbody");
+    var empty = document.getElementById("empty-state");
+    var countEl = document.getElementById("item-count");
+    var pill = document.getElementById("summary-pill");
+    var liveList = document.getElementById("live-summary-list");
+    if(!tbody) return;
+
+    var totalQty = state.items.reduce(function(acc, x){ return acc + (parseInt(x.qty,10)||1); }, 0);
+    countEl.textContent = state.items.length + " (" + totalQty + " total pcs)";
+    pill.textContent = state.items.length + " types · " + totalQty + " pcs";
+
+    updateVolumeSlab(totalQty);
+
+    if(!state.items.length){
+      tbody.innerHTML = "";
+      empty.style.display = "block";
+      liveList.innerHTML = "No items added yet. Click items on the left to build your list.";
+      return;
+    }
+
+    empty.style.display = "none";
+    tbody.innerHTML = state.items.map(function(item, idx){
+      return '<tr>' +
+        '<td><input class="inp" style="padding:6px 10px;font-size:.85rem;min-height:36px" value="'+esc(item.name)+'" oninput="window.updateItemName('+idx+', this.value)" placeholder="Item name and specifications"></td>' +
+        '<td style="text-align:center">' +
+          '<div class="qty-ctrl">' +
+            '<button type="button" class="qty-btn" onclick="window.stepQty('+idx+', -1)">−</button>' +
+            '<input type="number" min="1" class="qty-val" value="'+(item.qty||1)+'" onchange="window.setQty('+idx+', this.value)">' +
+            '<button type="button" class="qty-btn" onclick="window.stepQty('+idx+', 1)">+</button>' +
+          '</div>' +
+        '</td>' +
+        '<td>' +
+          '<select class="unit-sel" onchange="window.updateUnit('+idx+', this.value)">' +
+            '<option value="Pcs"'+(item.unit==="Pcs"?' selected':'')+'>Pcs</option>' +
+            '<option value="Units"'+(item.unit==="Units"?' selected':'')+'>Units</option>' +
+            '<option value="Sets"'+(item.unit==="Sets"?' selected':'')+'>Sets</option>' +
+            '<option value="Kits"'+(item.unit==="Kits"?' selected':'')+'>Kits</option>' +
+            '<option value="Rolls"'+(item.unit==="Rolls"?' selected':'')+'>Rolls</option>' +
+            '<option value="Lic"'+(item.unit==="Lic"?' selected':'')+'>Lic</option>' +
+          '</select>' +
+        '</td>' +
+        '<td><button type="button" class="item-del" onclick="window.removeItem('+idx+')" title="Remove item">✕</button></td>' +
+      '</tr>';
+    }).join("");
+
+    // Live summary box
+    liveList.innerHTML = '<ul style="margin:0;padding-left:16px;display:grid;gap:6px">' +
+      state.items.map(function(it){
+        return '<li><b>'+it.qty+' '+it.unit+'</b> × '+esc(it.name)+'</li>';
+      }).join("") +
+    '</ul>';
+  }
+
+  // Global handlers exposed for inline HTML
+  window.bulkAddCatalog = function(catId){
+    var found = CATALOG.find(function(c){ return c.id === catId; });
+    if(!found) return;
+    var existing = state.items.find(function(x){ return x.name === found.name; });
+    if(existing){
+      existing.qty = (parseInt(existing.qty,10)||1) + found.defQty;
+    } else {
+      state.items.push({ name: found.name, qty: found.defQty, unit: found.unit });
+    }
+    renderSelectedTable();
+    renderQuickGrid();
+  };
+
+  window.loadPackagePreset = function(type){
+    if(type === "office10"){
+      state.items = [
+        { name: "Dell Inspiron 15 (Core i5, 16GB RAM, 512GB SSD)", qty: 10, unit: "Units" },
+        { name: "TP-Link Archer C6 Gigabit Dual-Band AC1200 Wi-Fi Router", qty: 2, unit: "Pcs" },
+        { name: "Biometric Face + Fingerprint Recognition Attendance Device", qty: 1, unit: "Units" }
+      ];
+    } else if(type === "cctv8"){
+      state.items = [
+        { name: "Hikvision 2MP HD Indoor Dome Night Vision Camera", qty: 4, unit: "Pcs" },
+        { name: "Hikvision 2MP HD Outdoor Weatherproof Bullet Camera", qty: 4, unit: "Pcs" },
+        { name: "Hikvision 8-Channel Turbo HD DVR + 2TB Surveillance HDD", qty: 1, unit: "Set" },
+        { name: "Cat6 Pure Copper High-Speed Network Cable (305m Roll)", qty: 1, unit: "Rolls" }
+      ];
+    } else if(type === "reseller"){
+      state.items = [
+        { name: "High-Speed NVMe M.2 512GB SSD (Kingston/Lexar)", qty: 10, unit: "Pcs" },
+        { name: "Laptop RAM 8GB DDR4 3200MHz (Crucial)", qty: 10, unit: "Pcs" },
+        { name: "TP-Link Archer C6 Gigabit Dual-Band AC1200 Wi-Fi Router", qty: 5, unit: "Pcs" }
+      ];
+    } else if(type === "pos"){
+      state.items = [
+        { name: "Jigri ERP Billing & Inventory Software (Annual License)", qty: 1, unit: "Lic" },
+        { name: "Restaurant POS Billing + Kitchen KOT Thermal Printer Set", qty: 1, unit: "Set" },
+        { name: "High-Speed Barcode Scanner with USB Auto-Stand", qty: 2, unit: "Pcs" }
+      ];
+    }
+    renderSelectedTable();
+    renderQuickGrid();
+  };
+
+  window.addCustomRow = function(){
+    state.items.push({ name: "", qty: 5, unit: "Pcs" });
+    renderSelectedTable();
+  };
+
+  window.clearAllItems = function(){
+    if(!state.items.length) return;
+    if(confirm("Are you sure you want to clear your current item list?")){
+      state.items = [];
+      renderSelectedTable();
+      renderQuickGrid();
+    }
+  };
+
+  window.stepQty = function(idx, delta){
+    if(!state.items[idx]) return;
+    var current = parseInt(state.items[idx].qty, 10) || 1;
+    state.items[idx].qty = Math.max(1, current + delta);
+    renderSelectedTable();
+    renderQuickGrid();
+  };
+
+  window.setQty = function(idx, val){
+    if(!state.items[idx]) return;
+    state.items[idx].qty = Math.max(1, parseInt(val, 10) || 1);
+    renderSelectedTable();
+    renderQuickGrid();
+  };
+
+  window.updateItemName = function(idx, val){
+    if(!state.items[idx]) return;
+    state.items[idx].name = val;
+  };
+
+  window.updateUnit = function(idx, val){
+    if(!state.items[idx]) return;
+    state.items[idx].unit = val;
+  };
+
+  window.removeItem = function(idx){
+    state.items.splice(idx, 1);
+    renderSelectedTable();
+    renderQuickGrid();
+  };
+
+  window.filterCat = function(cat, btn){
+    state.activeCat = cat;
+    var chips = document.querySelectorAll("#cat-chips .cat-chip");
+    chips.forEach(function(c){ c.classList.remove("active"); });
+    btn.classList.add("active");
+    renderQuickGrid();
+  };
+
+  window.filterSearch = function(val){
+    state.searchQuery = val || "";
+    renderQuickGrid();
+  };
+
+  window.setLoc = function(loc){
+    var el = document.getElementById("b-loc");
+    if(el) el.value = loc;
+  };
+
+  window.setMode = function(m){
+    state.mode = m;
+    var visualBtn = document.getElementById("tab-visual");
+    var textBtn = document.getElementById("tab-text");
+    var visualBox = document.getElementById("mode-visual-box");
+    var textBox = document.getElementById("mode-text-box");
+
+    if(m === "visual"){
+      visualBtn.classList.add("active");
+      textBtn.classList.remove("active");
+      visualBox.style.display = "block";
+      textBox.style.display = "none";
+    } else {
+      textBtn.classList.add("active");
+      visualBtn.classList.remove("active");
+      visualBox.style.display = "none";
+      textBox.style.display = "block";
+      // Pre-fill text with visual items if empty
+      var rawArea = document.getElementById("b-raw-items");
+      if(!rawArea.value.trim() && state.items.length){
+        rawArea.value = state.items.map(function(x){ return x.qty + "x " + x.name + " (" + x.unit + ")"; }).join("\n");
+      }
+    }
+  };
+
+  // Submission handler
+  document.getElementById("b-send").onclick = function(){
+    var out = document.getElementById("b-out");
+    var name = document.getElementById("b-name").value.trim();
+    var phone = document.getElementById("b-phone").value.trim();
+    var email = document.getElementById("b-email").value.trim();
+    var biz = document.getElementById("b-biz").value.trim();
+    var bType = document.getElementById("b-type").value;
+    var loc = document.getElementById("b-loc").value.trim();
+    var notes = document.getElementById("b-notes").value.trim();
+    var consent = document.getElementById("b-consent").checked;
+
+    out.innerHTML = "";
+
+    // 1. Validation
+    if(name.length < 2){
+      out.innerHTML = '<div class="form-err show" style="margin-top:10px">⚠️ Please enter your full name.</div>';
+      return;
+    }
+    var digits = phone.replace(/\D/g,"");
+    if(digits.length < 10 || digits.length > 14){
+      out.innerHTML = '<div class="form-err show" style="margin-top:10px">⚠️ Please enter a valid 10-digit mobile or WhatsApp number.</div>';
+      return;
+    }
+    if(!email || !email.includes("@")){
+      out.innerHTML = '<div class="form-err show" style="margin-top:10px">⚠️ Please enter a valid email address so we can send your itemised PDF quotation.</div>';
+      return;
+    }
+
+    // 2. Format Items list
+    var itemsString = "";
+    if(state.mode === "visual"){
+      var validItems = state.items.filter(function(it){ return it.name.trim().length > 0; });
+      if(!validItems.length){
+        out.innerHTML = '<div class="form-err show" style="margin-top:10px">⚠️ Please select or type at least one product in your bulk list.</div>';
+        return;
+      }
+      itemsString = validItems.map(function(it, i){
+        return (i+1) + ". " + it.qty + "x " + it.name.trim() + " (" + it.unit + ")";
+      }).join("\n");
+    } else {
+      var raw = document.getElementById("b-raw-items").value.trim();
+      if(raw.length < 5){
+        out.innerHTML = '<div class="form-err show" style="margin-top:10px">⚠️ Please paste or type your item list and quantities.</div>';
+        return;
+      }
+      itemsString = raw;
+    }
+
+    if(!consent){
+      out.innerHTML = '<div class="form-err show" style="margin-top:10px">⚠️ Please tick the agreement box to proceed.</div>';
+      return;
+    }
+
+    // 3. Create structured Lead
+    var leadId = "L-" + Date.now().toString(36).toUpperCase() + "-" + Math.floor(Math.random()*1296).toString(36).toUpperCase();
+    var leadMessage = "BULK LIST:\n" + itemsString +
+      (bType ? "\n\nBuyer Type: " + bType : "") +
+      (notes ? "\nSpecial Notes: " + notes : "");
+
+    var lead = {
+      id: leadId,
+      createdAt: new Date().toISOString(),
+      form: "bulk-quote-interactive",
+      name: name,
+      phone: phone,
+      email: email,
+      company: biz,
+      location: loc,
+      service: "Bulk / Dealer Enquiry (" + bType + ")",
+      message: leadMessage,
+      source: { landing: "bulk-quote.html" },
+      status: "new",
+      followUp: "",
+      assignee: "",
+      history: [{ ts: new Date().toISOString(), note: "Interactive bulk quotation requested for " + state.items.length + " items." }]
+    };
+
+    // Save locally
+    try {
+      var arr = JSON.parse(localStorage.getItem("prixna_leads_v1") || "[]");
+      arr.unshift(lead);
+      localStorage.setItem("prixna_leads_v1", JSON.stringify(arr));
+    } catch(e){}
+
+    // Notify staff
+    try {
+      if(window.PRIXNA_NOTIFY) window.PRIXNA_NOTIFY.push("bulk", lead);
+    } catch(e2){}
+
+    // Pre-composed WhatsApp message
+    var waText = "Hello Prixna IT Solution! I submitted Bulk Quotation " + lead.id + ".\n" +
+      "Name: " + name + " (" + phone + ")\n" +
+      (email ? "Email: " + email + "\n" : "") +
+      (biz ? "Business: " + biz + " [" + bType + "]\n" : "") +
+      (loc ? "Location: " + loc + "\n" : "") +
+      "Items list:\n" + itemsString.slice(0, 320) + (itemsString.length > 320 ? "\n..." : "");
+
+    var waUrl = "https://wa.me/9779813714582?text=" + encodeURIComponent(waText);
+
+    // Render Success Card
+    out.innerHTML = '<div class="form-ok show" style="border-radius:14px;padding:20px;border-left:4px solid #16A34A">' +
+      '<div style="font-size:1.15rem;font-weight:800;color:#15803D;margin-bottom:6px">✅ Bulk Quotation Request Received!</div>' +
+      '<p style="margin:0 0 10px;font-size:.9rem;line-height:1.5">' +
+        'Thank you, <b>' + esc(name) + '</b>! Your reference ID is <b style="font-family:monospace;color:var(--blue-700)">' + esc(lead.id) + '</b>.<br>' +
+        'Our B2B wholesale team is preparing your itemised NPR quotation (with volume dealer discounts). We will send the PDF quote to <b>' + esc(email) + '</b> within 1 hour (Sun–Fri 9:30 AM–6:30 PM).' +
+      '</p>' +
+      '<div class="btn-row" style="margin-top:14px;gap:10px">' +
+        '<a class="btn btn-whatsapp btn-sm" target="_blank" rel="noopener" href="' + waUrl + '">💬 Send List to Manager on WhatsApp</a>' +
+        '<a class="btn btn-outline btn-sm" href="tel:+9779813714582">📞 Call +977 9813714582</a>' +
+      '</div>' +
+    '</div>';
+
+    // Clear items in table
+    state.items = [];
+    renderSelectedTable();
+    renderQuickGrid();
+  };
+
+  // Initial render
+  renderQuickGrid();
+  renderSelectedTable();
+})();
+</script>
+</body>
+</html>

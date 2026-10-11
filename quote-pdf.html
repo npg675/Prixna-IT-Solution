@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-staff="1">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quotation Builder (Staff) | Prixna IT Solution</title>
+<meta name="description" content="Staff quotation builder: itemised NPR quote with VAT, advance, print to PDF.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0A1A38">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script>try{if(localStorage.getItem("prixna_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
+<style>
+.q-doc{background:#fff;color:#10203C;border:1px solid var(--line);border-radius:14px;padding:34px;margin-top:18px}
+.q-head{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:3px solid #0A1A38;padding-bottom:14px}
+.q-table{width:100%;border-collapse:collapse;margin-top:14px}
+.q-table th,.q-table td{border:1px solid #D7E0F2;padding:8px;font-size:14px;text-align:left}
+.q-table th{background:#0A1A38;color:#fff}
+.q-table td.num,.q-table th.num{text-align:right}
+.q-table input{width:100%;border:1px solid #D7E0F2;border-radius:6px;padding:6px;font-size:14px}
+.q-tot{margin-left:auto;max-width:320px;width:100%;margin-top:12px}
+.q-tot div{display:flex;justify-content:space-between;padding:5px 0;font-size:14px}
+.q-tot .grand{font-weight:800;font-size:17px;border-top:2px solid #0A1A38;margin-top:6px;padding-top:8px}
+.no-print-note{background:#FFFDF6;border:1px solid #F0DDB8;border-radius:10px;padding:10px 14px}
+@media print{
+  .no-print,#site-header,#site-footer,.skip,.page-hero .btn-row{display:none!important}
+  .section{padding:0}.container{max-width:100%}
+  .q-doc{border:0;border-radius:0;margin:0;padding:0}
+  body{background:#fff}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header id="site-header"></header>
+<main id="main">
+<section class="page-hero"><div class="container">
+<p class="crumb"><a href="admin.html">Lead inbox</a> / Quotation</p>
+<h1>Quotation builder</h1>
+<p>Staff only — enter real unit prices, print or save as PDF, share on WhatsApp. Nothing is auto-priced.</p>
+</div></section>
+<section class="section"><div class="container">
+<div class="no-print no-print-note small" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+  <span>Lead: <b id="q-lead">manual</b> · Quote: <b id="q-id">new</b> · Fill prices in NPR, then <b>Save</b> before printing.</span>
+  <a href="/quote-builder" class="btn btn-outline btn-sm">🚀 Open Modern Quotation Builder</a>
+</div>
+<div class="q-doc" id="q-doc">
+<div class="q-head">
+<div><b style="font-size:20px">Prixna IT Solution Pvt. Ltd.</b><br><span class="small" id="q-company">Koteshwor-32, Kathmandu, Nepal · +977 9813714582 · info@prixnaitsolution.com.np</span></div>
+<div style="text-align:right"><b style="font-size:20px">QUOTATION</b><br><span class="small">No: <b id="q-no">Q-NEW</b><br>Date: <span id="q-date"></span><br>Valid till: <span id="q-valid"></span></span></div>
+</div>
+<p style="margin:14px 0 0"><b>To:</b> <span id="q-to">—</span> <span class="small muted" id="q-meta"></span></p>
+<table class="q-table" id="q-table">
+<thead><tr><th style="width:36px">#</th><th>Item</th><th style="width:70px">Qty</th><th style="width:130px" class="num">Unit (NPR)</th><th style="width:130px" class="num">Amount</th><th class="no-print" style="width:44px"></th></tr></thead>
+<tbody id="q-rows"></tbody>
+</table>
+<div class="no-print btn-row" style="margin-top:10px">
+<button class="btn btn-outline btn-sm" id="q-add">+ Add row</button>
+<label class="small" style="margin-left:auto"><input type="checkbox" id="q-vat" checked> VAT <span id="q-vatpct">13</span>%</label>
+<label class="small">Discount NPR <input id="q-disc" type="number" min="0" value="0" style="width:110px;border:1px solid #D7E0F2;border-radius:6px;padding:5px"></label>
+</div>
+<div class="q-tot" id="q-tot"></div>
+<div style="margin-top:16px" id="q-pay"></div>
+<p class="small muted" style="margin-top:12px" id="q-terms"></p>
+<div style="display:flex;gap:60px;margin-top:34px"><div>____________<br><span class="small">Prepared by</span></div><div>____________<br><span class="small">Received by</span></div></div>
+</div>
+<div class="no-print btn-row" style="margin-top:16px">
+<button class="btn btn-primary" id="q-save">💾 Save quote</button>
+<button class="btn btn-outline" id="q-print">🖨️ Print / PDF</button>
+<button class="btn btn-whatsapp" id="q-wa">💬 WhatsApp customer</button>
+<button class="btn btn-outline" id="q-copy">⧉ Copy summary</button>
+</div>
+<div id="q-out" class="no-print" style="margin-top:12px"></div>
+</div></section>
+</main>
+<footer id="site-footer"></footer>
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/prixna-auth.js"></script>
+<script src="js/main.js"></script>
+<script src="js/prixna-notify.js"></script>
+<script src="js/prixna-quote.js"></script>
+<script>
+(function(){
+var Q = window.PRIXNA_QUOTE, C = window.PRIXNA || {}, PAY = C.payment || {};
+var qp = {}; try{ qp = Object.fromEntries(new URLSearchParams(location.search)); }catch(e){}
+var quotes = Q.loadQuotes();
+var existing = qp.qid ? quotes.find(function(q){ return q.id===qp.qid; }) : null;
+var lead = null;
+if(qp.id){ try{ var ls=JSON.parse(localStorage.getItem("prixna_leads_v1")||"[]"); lead=ls.find(function(l){return l.id===qp.id;})||null; }catch(e){} }
+var state = existing ? JSON.parse(JSON.stringify(existing)) : {
+  id: Q.newQuoteId(), leadRef: lead?lead.id:"", customer: lead?lead.name:"", phone: lead?lead.phone:"",
+  company: lead?lead.company||"":"", location: lead?lead.location||"",
+  rows: lead?Q.parseItems(lead.message):[{qty:1,desc:"",price:0}],
+  discount: 0, vatOn: true, status: "sent", createdAt: new Date().toISOString()
+};
+if(!state.rows.length) state.rows=[{qty:1,desc:"",price:0}];
+var vatPct = PAY.vatPercent!=null?PAY.vatPercent:13, advPct = PAY.advancePercent!=null?PAY.advancePercent:30;
+var validDays = PAY.quoteValidityDays!=null?PAY.quoteValidityDays:7;
+document.getElementById("q-vatpct").textContent = vatPct;
+document.getElementById("q-vat").checked = state.vatOn!==false;
+document.getElementById("q-disc").value = state.discount||0;
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+function paintMeta(){
+  document.getElementById("q-no").textContent = state.id;
+  document.getElementById("q-id").textContent = state.id;
+  document.getElementById("q-lead").textContent = state.leadRef||"manual";
+  var d = new Date(state.createdAt);
+  document.getElementById("q-date").textContent = d.toLocaleDateString("en-GB");
+  document.getElementById("q-valid").textContent = new Date(d.getTime()+validDays*864e5).toLocaleDateString("en-GB");
+  document.getElementById("q-to").textContent = state.customer||"—";
+  document.getElementById("q-meta").textContent = (state.company?state.company+" · ":"")+(state.phone||"")+(state.location?" · "+state.location:"");
+  document.getElementById("q-terms").textContent = "Terms: "+(PAY.terms||"");
+  var pay = "";
+  if(PAY.esewaId) pay += "<b>eSewa:</b> "+esc(PAY.esewaId)+" &nbsp; ";
+  if(PAY.bankAccount) pay += "<b>Bank:</b> "+esc(PAY.bankName||"")+" · A/C "+esc(PAY.bankAccount)+" ("+esc(PAY.bankHolder||"")+")";
+  if(!pay) pay = "For payment details (eSewa / bank), call <b>"+esc(C.phoneDisplay||"+977 9813714582")+"</b>. Set real details in js/config.js → payment.";
+  document.getElementById("q-pay").innerHTML = "<b>Advance to start work ("+advPct+"%): <span id='q-adv'></span></b><br><span class='small'>"+pay+"</span>";
+}
+function paintRows(){
+  var tb = document.getElementById("q-rows"); tb.innerHTML = "";
+  state.rows.forEach(function(r,i){
+    var tr = document.createElement("tr");
+    tr.innerHTML = "<td>"+(i+1)+"</td>"
+      +'<td><input data-k="desc" data-i="'+i+'" value="'+esc(r.desc)+'"></td>'
+      +'<td><input data-k="qty" data-i="'+i+'" type="number" min="0" value="'+esc(r.qty)+'"></td>'
+      +'<td><input data-k="price" data-i="'+i+'" type="number" min="0" value="'+esc(r.price)+'"></td>'
+      +'<td class="num" id="amt-'+i+'"></td>'
+      +'<td class="no-print"><button class="btn btn-outline btn-sm" data-del="'+i+'">✕</button></td>';
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll("input").forEach(function(inp){
+    inp.oninput = function(){ var i=+inp.dataset.i, k=inp.dataset.k;
+      state.rows[i][k] = (k==="desc")?inp.value:Math.max(0,+inp.value||0); paintTotals(); };
+  });
+  tb.querySelectorAll("[data-del]").forEach(function(b){
+    b.onclick = function(){ state.rows.splice(+b.dataset.del,1); if(!state.rows.length)state.rows=[{qty:1,desc:"",price:0}]; paintRows(); paintTotals(); };
+  });
+  paintTotals();
+}
+function totals(){
+  state.discount = Math.max(0,+document.getElementById("q-disc").value||0);
+  state.vatOn = document.getElementById("q-vat").checked;
+  return Q.computeTotals(state.rows, state.discount, vatPct, state.vatOn, advPct);
+}
+function paintTotals(){
+  var t = totals();
+  state.rows.forEach(function(r,i){ var el=document.getElementById("amt-"+i); if(el) el.textContent=Q.formatNPR((+r.qty||0)*(+r.price||0)); });
+  document.getElementById("q-tot").innerHTML =
+    "<div><span>Subtotal</span><b>"+Q.formatNPR(t.subtotal)+"</b></div>"
+    +"<div><span>Discount</span><b>− "+Q.formatNPR(t.discount)+"</b></div>"
+    +"<div><span>VAT ("+(state.vatOn?vatPct:0)+"%)</span><b>"+Q.formatNPR(t.vat)+"</b></div>"
+    +"<div class='grand'><span>Total</span><span>"+Q.formatNPR(t.total)+"</span></div>";
+  var adv = document.getElementById("q-adv"); if(adv) adv.textContent = Q.formatNPR(t.advance);
+  return t;
+}
+document.getElementById("q-add").onclick = function(){ state.rows.push({qty:1,desc:"",price:0}); paintRows(); };
+document.getElementById("q-disc").oninput = paintTotals;
+document.getElementById("q-vat").onchange = paintTotals;
+document.getElementById("q-save").onclick = function(){
+  var t = paintTotals(); state.status = state.status||"sent";
+  var rec = { id:state.id, leadRef:state.leadRef, customer:state.customer, phone:state.phone, company:state.company,
+    rows:state.rows, discount:state.discount, vatOn:state.vatOn, total:t.total, advance:t.advance, status:state.status, createdAt:state.createdAt };
+  var all = Q.loadQuotes().filter(function(q){ return q.id!==state.id; }); all.unshift(rec); Q.saveQuotes(all);
+  try{ if(window.PRIXNA_NOTIFY) window.PRIXNA_NOTIFY.push("quote",{id:state.id,leadRef:state.leadRef,name:state.customer,phone:state.phone,total:t.total,advance:t.advance,status:state.status}); }catch(e){}
+  if(window.PRIXNA_LOG) window.PRIXNA_LOG("quote_saved", state.id+" / "+t.total);
+  document.getElementById("q-out").innerHTML = '<div class="form-ok show"><b>✅ Quote '+esc(state.id)+' saved.</b> Total '+Q.formatNPR(t.total)+' · Advance '+Q.formatNPR(t.advance)+'. Now Print/PDF or WhatsApp it.</div>';
+};
+document.getElementById("q-print").onclick = function(){ paintTotals(); window.print(); };
+document.getElementById("q-wa").onclick = function(){
+  var t = paintTotals();
+  var msg = "Namaste "+(state.customer||"")+" 🙏 Prixna quotation "+state.id+" (valid "+validDays+" days): Total "+Q.formatNPR(t.total)+" (incl. VAT), advance to start "+Q.formatNPR(t.advance)+". Reply YES to confirm or call "+(C.phoneDisplay||"")+".";
+  window.open("https://wa.me/"+(state.phone||"").replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");
+};
+document.getElementById("q-copy").onclick = function(){
+  var t = paintTotals();
+  var txt = state.rows.map(function(r,i){ return (i+1)+". "+r.desc+" — "+r.qty+" x "+Q.formatNPR(r.price)+" = "+Q.formatNPR(r.qty*r.price); }).join("\n")
+    + "\nTotal: "+Q.formatNPR(t.total)+" | Advance ("+advPct+"%): "+Q.formatNPR(t.advance)+" | Quote "+state.id;
+  try{ navigator.clipboard.writeText(txt); document.getElementById("q-out").innerHTML='<div class="form-ok show">⧉ Copied.</div>'; }catch(e){}
+};
+paintMeta(); paintRows();
+})();
+</script>
+</body>
+</html>
