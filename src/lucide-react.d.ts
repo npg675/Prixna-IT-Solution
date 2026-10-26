@@ -77,4 +77,15 @@ declare module "lucide-react" {
   export const Check: LucideIcon;
   export const ChevronUp: LucideIcon;
   export const ChevronDown: LucideIcon;
+  export const Play: LucideIcon;
+  export const CheckCircle2: LucideIcon;
+  export const Layers: LucideIcon;
+  export const Copy: LucideIcon;
+  export const PhoneCall: LucideIcon;
+  export const Laptop: LucideIcon;
+  export const HelpCircle: LucideIcon;
+  export const Video: LucideIcon;
+  export const Save: LucideIcon;
+  export const Plus: LucideIcon;
+  export const Trash2: LucideIcon;
 }

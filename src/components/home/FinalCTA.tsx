@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Phone, MessageCircle, Mail, MapPin, Clock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { getTelUrl, getWhatsAppUrl } from "@/lib/utils";
-import { cn } from "@/lib/utils";
 
 export function FinalCTA() {
   return (
@@ -35,10 +35,10 @@ export function FinalCTA() {
           className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
         >
           <Button asChild variant="white" size="xl" className="w-full sm:w-auto">
-            <a href="/contact">Get a Free Consultation</a>
+            <Link href="/contact">Get a Free Consultation</Link>
           </Button>
           <Button asChild variant="outline" size="xl" className="w-full sm:w-auto border-white/30 hover:bg-white/10">
-            <a href="/contact?service=Bulk%20%2F%20Dealer%20Enquiry">Request a Quote</a>
+            <Link href="/contact?service=Bulk%20%2F%20Dealer%20Enquiry">Request a Quote</Link>
           </Button>
           <Button asChild variant="whatsapp" size="xl" className="w-full sm:w-auto">
             <a href={getWhatsAppUrl("Hello Prixna IT Solution, I need a free consultation for my business.")} target="_blank" rel="noopener noreferrer">

@@ -26,6 +26,7 @@ function seedConfig() {
     sheetsEndpoint: process.env.NEXT_PUBLIC_SHEETS_ENDPOINT || null,
     aiBackend: "/api/ai-chat",
     staffWhatsApp: "9779813714582",
+    isNextApp: true,
     ...(w.PRIXNA || {}),
   };
 }

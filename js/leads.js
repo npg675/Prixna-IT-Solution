@@ -209,10 +209,15 @@
       initForm(mount.querySelector("form[data-lead-form]"));
     });
   }
-  document.addEventListener("DOMContentLoaded", function () {
+  function bootLeads() {
     renderMounts();
     document.querySelectorAll("form[data-lead-form]").forEach(initForm);
-  });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootLeads);
+  } else {
+    bootLeads();
+  }
   /* public helpers for admin + shop */
   window.PRIXNA_LEADS = { load: load, saveAll: saveAll, esc: esc };
 })();

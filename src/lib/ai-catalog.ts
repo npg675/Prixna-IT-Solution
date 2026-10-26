@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { invalidateProductCache } from "./ai-memory-cache";
 
 export interface CatalogItem {
   id: string;
@@ -53,12 +54,20 @@ export function saveExcelCatalog(catalog: ExcelCatalogData): void {
   } catch (e) {
     console.warn("[ai-catalog] Could not write to public/data:", e);
   }
+
+  // Automatically invalidate product memory cache so new prices & stocks take effect immediately!
+  try {
+    invalidateProductCache();
+  } catch (e) {
+    console.warn("[ai-catalog] Cache invalidation skipped:", e);
+  }
 }
 
 export function deleteExcelCatalog(): void {
   try {
     if (fs.existsSync(CATALOG_FILE_PATH)) fs.unlinkSync(CATALOG_FILE_PATH);
     if (fs.existsSync(PUBLIC_CATALOG_PATH)) fs.unlinkSync(PUBLIC_CATALOG_PATH);
+    invalidateProductCache();
   } catch (e) {
     console.error("[ai-catalog] Failed to delete catalog:", e);
   }
@@ -71,7 +80,10 @@ export function buildCatalogSummary(items: CatalogItem[], fileName: string): str
   lines.push(`\nPRICING & STOCK RULES FOR AI ASSISTANT:`);
   lines.push(`1. Always quote these exact NPR (रु.) prices when customers ask about pricing, rates, or quotation.`);
   lines.push(`2. If a customer asks about stock availability or warranty, state the exact status recorded below.`);
-  lines.push(`3. When answering in Nepali, write the currency as 'रु.' or 'NPR' with polite Nepali phrasing.\n`);
+  lines.push(`3. When answering in Nepali, write the currency as 'रु.' or 'NPR' with polite Nepali phrasing.`);
+  lines.push(`4. FOCUSED MAIN POINT FIRST: In your initial response, state ONLY the direct answer (Product Name, exact Price, Stock status). DO NOT dump long specs strings initially.`);
+  lines.push(`5. BRIEF SAME-CATEGORY RECOMMENDATIONS: Suggest 1 or 2 similar options from the same category with just Name and Price.`);
+  lines.push(`6. PROGRESSIVE DISCLOSURE (TOKEN OPTIMIZATION): Ask if they would like full technical specifications or want to book. Reveal full specs only upon customer request.\n`);
   lines.push(`ITEM LIST:`);
 
   items.slice(0, 150).forEach((it, idx) => {

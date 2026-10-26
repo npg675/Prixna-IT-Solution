@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Metadata } from "next";
 import { ContactHero } from "@/components/contact/ContactHero";
 import { ContactFormSection } from "@/components/contact/ContactFormSection";
@@ -17,7 +18,9 @@ export default function ContactPage() {
   return (
     <>
       <ContactHero />
-      <ContactFormSection />
+      <Suspense fallback={<div className="min-h-[400px]" />}>
+        <ContactFormSection />
+      </Suspense>
       <ContactInfo />
       <FinalCTA />
     </>

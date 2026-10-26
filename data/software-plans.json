@@ -1,0 +1,66 @@
+{
+  "updatedAt": "2026-10-12T00:00:00.000Z",
+  "note": "Admin edits plans from dashboard.html / admin.html (Subscription Plans). Seed only — live overrides live in localStorage prixna_plans_v1. Never hardcode these prices in code; always read via js/prixna-plans.js.",
+  "trial": {
+    "enabled": true,
+    "days": 7,
+    "note": "Free guided trial during consultation — staff activates after free consultation, no card required."
+  },
+  "plans": [
+    {
+      "id": "jigri-erp-monthly",
+      "product": "jigri-erp",
+      "name": "Jigri ERP — Monthly",
+      "billing": "monthly",
+      "priceNPR": 0,
+      "priceNote": "Quoted in NPR after free consultation",
+      "features": ["VAT/PAN billing", "Inventory + low-stock alerts", "Day-book + profit reports", "Phone + WhatsApp support"],
+      "onboarding": "Setup + data migration + staff training included",
+      "active": true
+    },
+    {
+      "id": "jigri-erp-yearly",
+      "product": "jigri-erp",
+      "name": "Jigri ERP — Yearly (2 months free)",
+      "billing": "yearly",
+      "priceNPR": 0,
+      "priceNote": "Yearly NPR quote — save vs monthly",
+      "features": ["Everything in Monthly", "Priority on-site visit", "Year-end reports for accountant"],
+      "onboarding": "Setup + data migration + staff training included",
+      "active": true
+    },
+    {
+      "id": "restaurant-pos-monthly",
+      "product": "restaurant-pos",
+      "name": "Restaurant POS + KOT — Monthly",
+      "billing": "monthly",
+      "priceNPR": 0,
+      "priceNote": "Quoted in NPR after free consultation",
+      "features": ["Table + KOT printing", "Split bills + discounts", "Daily collection report"],
+      "onboarding": "Counter + kitchen setup + staff training included",
+      "active": true
+    },
+    {
+      "id": "jigri-crm-per-user",
+      "product": "jigri-crm",
+      "name": "Jigri CRM — Per user / month",
+      "billing": "per-user-monthly",
+      "priceNPR": 0,
+      "priceNote": "Per-user NPR quote after consultation",
+      "features": ["Lead inbox + pipeline", "Follow-up reminders", "Quotation tracking"],
+      "onboarding": "Pipeline setup + team training included",
+      "active": true
+    },
+    {
+      "id": "ehajiri-per-staff",
+      "product": "ehajiri-attendance",
+      "name": "eHajiri — Per staff / month + device",
+      "billing": "per-staff-monthly",
+      "priceNPR": 0,
+      "priceNote": "Device + software bundle quoted after site visit",
+      "features": ["Biometric device integration", "Leave + shift + payroll reports", "Mobile app"],
+      "onboarding": "Device installation + HR training included",
+      "active": true
+    }
+  ]
+}

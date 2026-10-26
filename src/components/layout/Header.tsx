@@ -21,6 +21,7 @@ import {
   Megaphone,
   Box,
   Sparkles,
+  Play,
   Users,
   Calendar,
   type LucideIcon,
@@ -49,6 +50,8 @@ const solutionLinks: NavChild[] = [
 ];
 
 const productLinks: NavChild[] = [
+  { name: "🎬 Software Demos", href: "/demo", desc: "Watch 2–4 min video tours", icon: Play },
+  { name: "✨ New Showcase", href: "/showcase", desc: "Hardware + software picks", icon: Sparkles },
   { name: "JigriTools (Free)", href: "/products/jigritools", desc: "30+ free utilities", icon: Box },
   { name: "Jigri ERP", href: "/products/jigri-erp", desc: "Billing + inventory", icon: Sparkles },
   { name: "Jigri CRM", href: "/products/jigri-crm", desc: "Leads + pipeline", icon: Users },

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Phone, MessageCircle, Mail } from "lucide-react";
 import { ConsultationForm } from "@/components/forms/ConsultationForm";
@@ -27,6 +28,9 @@ const serviceOptions = [
 ];
 
 export function ContactFormSection() {
+  const searchParams = useSearchParams();
+  const serviceParam = searchParams?.get("service") || "";
+
   return (
     <section className="section bg-muted dark:bg-background" id="consultation-form">
       <div className="container-custom">
@@ -53,7 +57,7 @@ export function ContactFormSection() {
                 <ConsultationForm
                   title=""
                   subtitle=""
-                  service=""
+                  service={serviceParam}
                   formType="contact-page"
                   showBooking
                 />

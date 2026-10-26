@@ -65,8 +65,12 @@ var excelCatalog = loadJSON(LS_EXCEL_CATALOG, null);
 
 function fetchExcelCatalog(){
   try {
-    fetch("/data/ai-catalog.json?_t=" + Date.now())
-      .then(function(r){ return r.ok ? r.json() : null; })
+    var primaryUrl = "/data/ai-catalog.json?_t=" + Date.now();
+    fetch(primaryUrl)
+      .then(function(r){
+        if(r.ok) return r.json();
+        return fetch("data/ai-catalog.json?_t=" + Date.now()).then(function(r2){ return r2.ok ? r2.json() : null; });
+      })
       .then(function(data){
         if(data && data.items && Array.isArray(data.items)){
           excelCatalog = data;
@@ -78,12 +82,16 @@ function fetchExcelCatalog(){
 fetchExcelCatalog();
 
 function searchExcelProducts(query){
+  var STOP_WORDS = /^(the|and|for|with|price|cost|rate|kati|parcha|ko|cha|ma|chahiyo|hajur|nepali|aaja|chha|ho|ke|k|euta|dinus|what|is|of|in|to|it|at|on|by|do|an|as|or|be|if|my|me|we|us|so|up|no|go|where|when|which|who|how|can|you|have|tell|give|need|want|show|help|please|about|this|that|there|any|some|good|bata|lai|le|pani|ra|ani|bhanda|garnus|dinu|kun|kasto|bhandinu|bhanidinu|thaha|pauna|milcha)$/i;
+  if(!excelCatalog || !excelCatalog.items || !excelCatalog.items.length){
+    excelCatalog = loadJSON(LS_EXCEL_CATALOG, null);
+  }
   if(!excelCatalog || !excelCatalog.items || !excelCatalog.items.length) return [];
   var clean = (query || "").toLowerCase()
     .replace(/[^\w\u0900-\u097F\s]/g, " ")
     .split(/\s+/)
     .filter(function(w){
-      return w.length > 1 && !/^(the|and|for|with|price|cost|rate|kati|parcha|ko|cha|ma|chahiyo|hajur|nepali|aaja|chha|ho|ke|k|euta|dinus)$/i.test(w);
+      return w.length > 1 && !STOP_WORDS.test(w);
     });
   if(!clean.length) return [];
 
@@ -94,9 +102,16 @@ function searchExcelProducts(query){
     var specs = (it.specs || "").toLowerCase();
     var score = 0;
     clean.forEach(function(w){
-      if(name.indexOf(w) > -1) score += 6;
-      else if(cat.indexOf(w) > -1) score += 3;
-      else if(specs.indexOf(w) > -1) score += 1;
+      if(w.length <= 3){
+        var re = new RegExp("(?:^|[^a-zA-Z0-9])" + w + "(?:$|[^a-zA-Z0-9])", "i");
+        if(re.test(name)) score += 8;
+        else if(re.test(cat)) score += 4;
+        else if(re.test(specs)) score += 2;
+      } else {
+        if(name.indexOf(w) > -1) score += 6;
+        else if(cat.indexOf(w) > -1) score += 3;
+        else if(specs.indexOf(w) > -1) score += 1;
+      }
     });
     if(score > 0){
       matches.push({ item: it, score: score });
@@ -106,27 +121,72 @@ function searchExcelProducts(query){
   matches.sort(function(a, b){ return b.score - a.score; });
   return matches.slice(0, 3).map(function(m){ return m.item; });
 }
-
-function formatExcelResults(items, ne){
+function formatExcelResults(items, ne, isFullSpecs){
   if(!items || !items.length) return null;
+  var top = items[0];
+  try { if(typeof state !== "undefined" && state) state.lastProduct = top; } catch(e){} // Cache last referenced product for quick follow-up
+
+  // If customer explicitly asks for full specs/details
+  if(isFullSpecs){
+    if(ne){
+      var detail = "📋 <b>" + esc(top.name) + " — विस्तृत विवरण (Full Specs):</b>\n"
+        + "• 💰 <b>मूल्य:</b> " + esc(top.price) + "\n"
+        + "• 📦 <b>स्टक स्थिति:</b> " + esc(top.stock) + "\n"
+        + (top.warranty ? "• 🛡️ <b>वारेन्टी:</b> " + esc(top.warranty) + "\n" : "")
+        + (top.specs ? "• ⚙️ <b>स्पेसिफिकेसन:</b> " + esc(top.specs) + "\n" : "")
+        + (top.notes ? "• 🎁 <b>विशेष नोट:</b> " + esc(top.notes) + "\n" : "");
+      return detail + "\nअर्डर वा बुकिङ गर्न <b>book</b> लेख्नुहोस् वा सिधै फोन गर्नुहोस्: <a href='" + PHONE_HREF + "'>📞 " + esc(PHONE_DISP) + "</a>";
+    } else {
+      var detailEn = "📋 <b>" + esc(top.name) + " — Full Technical Specifications:</b>\n"
+        + "• 💰 <b>Price:</b> " + esc(top.price) + "\n"
+        + "• 📦 <b>Stock:</b> " + esc(top.stock) + "\n"
+        + (top.warranty ? "• 🛡️ <b>Warranty:</b> " + esc(top.warranty) + "\n" : "")
+        + (top.specs ? "• ⚙️ <b>Specs:</b> " + esc(top.specs) + "\n" : "")
+        + (top.notes ? "• 🎁 <b>Note:</b> " + esc(top.notes) + "\n" : "");
+      return detailEn + "\nTo order or reserve, reply <b>book</b> or call us: <a href='" + PHONE_HREF + "'>📞 " + esc(PHONE_DISP) + "</a>.";
+    }
+  }
+
+  // FOCUSED ANSWER FIRST (Saves customer reading time & LLM tokens)
+  // 1. Direct main-point answer for the queried item
+  // 2. Recommend 1-2 alternatives in the same category or related options with short details
+  var alternatives = items.slice(1, 3);
+  if(!alternatives.length && excelCatalog && excelCatalog.items && top.category){
+    alternatives = excelCatalog.items.filter(function(it){
+      return it.name !== top.name && (it.category || "").toLowerCase() === (top.category || "").toLowerCase();
+    }).slice(0, 2);
+  }
+
   if(ne){
-    var listNe = items.map(function(it){
-      var l = "• <b>" + esc(it.name) + "</b>: 💰 <b>" + esc(it.price) + "</b>";
-      if(it.stock) l += " | 📦 " + esc(it.stock);
-      if(it.warranty) l += " | 🛡️ " + esc(it.warranty);
-      if(it.specs) l += "\n  <small style='opacity:0.85;'>" + esc(it.specs) + "</small>";
-      return l;
-    }).join("\n");
-    return "📊 <b>हाम्रो लाइभ मूल्य सूची (अपडेट गरिएको Excel क्याटलग अनुसार):</b>\n" + listNe + "\n\nथप विवरण वा अर्डरका लागि सिधै कल गर्नुहोस्: <a href='" + PHONE_HREF + "'>📞 " + esc(PHONE_DISP) + "</a> वा <b>book</b> लेख्नुहोस्।";
+    var out = "🎯 <b>" + esc(top.name) + "</b>\n"
+      + "💰 <b>मूल्य:</b> <b>" + esc(top.price) + "</b>"
+      + " | 📦 " + esc(top.stock)
+      + (top.warranty ? " | 🛡️ " + esc(top.warranty) : "");
+
+    if(alternatives.length){
+      out += "\n\n💡 <b>यही श्रेणीका अन्य विकल्पहरू (Similar Options):</b>\n";
+      out += alternatives.map(function(alt){
+        return "• <b>" + esc(alt.name) + "</b>: 💰 " + esc(alt.price) + " (" + esc(alt.stock || "Available") + ")";
+      }).join("\n");
+    }
+
+    out += "\n\n👉 विस्तृत फिचर्स हेर्न <b>specs</b> लेख्नुहोस् वा अर्डर गर्न <b>book</b> भन्नुहोस्।";
+    return out;
   } else {
-    var listEn = items.map(function(it){
-      var l = "• <b>" + esc(it.name) + "</b>: 💰 <b>" + esc(it.price) + "</b>";
-      if(it.stock) l += " | 📦 Stock: " + esc(it.stock);
-      if(it.warranty) l += " | 🛡️ " + esc(it.warranty);
-      if(it.specs) l += "\n  <small style='opacity:0.85;'>" + esc(it.specs) + "</small>";
-      return l;
-    }).join("\n");
-    return "📊 <b>Live Pricing from our Business Excel Catalog:</b>\n" + listEn + "\n\nNeed immediate order or booking? Call us: <a href='" + PHONE_HREF + "'>📞 " + esc(PHONE_DISP) + "</a> or reply <b>book</b>.";
+    var outEn = "🎯 <b>" + esc(top.name) + "</b>\n"
+      + "💰 <b>Price:</b> <b>" + esc(top.price) + "</b>"
+      + " | 📦 Status: " + esc(top.stock)
+      + (top.warranty ? " | 🛡️ " + esc(top.warranty) : "");
+
+    if(alternatives.length){
+      outEn += "\n\n💡 <b>Other options in this category:</b>\n";
+      outEn += alternatives.map(function(alt){
+        return "• <b>" + esc(alt.name) + "</b>: 💰 " + esc(alt.price) + " (" + esc(alt.stock || "Available") + ")";
+      }).join("\n");
+    }
+
+    outEn += "\n\n👉 Reply <b>specs</b> for full technical details, or <b>book</b> to reserve.";
+    return outEn;
   }
 }
 
@@ -150,14 +210,18 @@ function detectIntent(t){
   t = (t||"").toLowerCase();
   var has = function(){ return matchAny(t, Array.prototype.slice.call(arguments)); };
   if(has("talk to human","speak with human","talk to person","human agent","human support","technician sanga","staff sanga","representative","प्रतिनिधि","मान्छेसँग कुरा","फोन गर्नुस्","call me back","call me")) return "human";
-  if(has("book","schedule","appointment","visit","site visit","installation book","amc","booking","समय","अपोइन्ट","समय मिलाउन")) return "booking";
+  if(has("book","schedule","appointment","visit","site visit","installation book","amc","booking","समय","अपोइन्ट","समय मिलाउन","बुक","बुकिङ","अर्डर","रिजर्भ")) return "booking";
   if(has("callback","call back","phone garnu","phone garnus","फोन","फर्क","फोन गर")) return "callback";
+  if(has("showcase","new items","new products","latest items","hardware showcase","software showcase","शोकेस","नयाँ सामान")) return "showcase";
+  if(has("enquiry","inquiry","services","service","products","product","catalog","catalogue","items","item","list","options","what do you sell","what do you have","what do you do","sewa","सामान","सेवा","के के छ","के पाइन्छ","सुविधा")) return "catalog_browse";
   if(has("price","rate","cost","kati","kati par","quotation","quote","मूल्य","पैसा","कति","दाम","शुल्क")) return "price";
   if(has("cctv","camera","dvr","सिसि","क्यामरा")) return "cctv";
   if(has("biometric","attendance","hajiri","e-hajiri","ehajiri","leave","payroll","हाजिरी","हाजिर")) return "attendance";
   if(has("laptop","computer","desktop","printer","scanner","mouse","ups","router","माउस","ल्यापटप","कम्प्युटर","प्रिन्टर")) return "hardware";
   if(has("wifi","network","lan","server","internet","वाईफाई","नेट","इन्टरनेट")) return "network";
-  if(has("erp","billing","inventory","stock","crm","software","website","app","jigri","saas","accounting","restaurant","kot","बिलिङ","सफ्टवेयर","बिल")) return "software";
+  if(has("demo","demonstration","trial video","watch video","video link","youtube","watch demo","live demo","डेमो","भिडियो","भिडियो हेर्न","डेमो हेर्न","ट्रायल")) return "demo";
+  if(has("watched demo","saw demo","saw video","demo herisake","demo heren","demo watched","interested after demo","subscribe software","software subscription","सब्सक्रिप्सन","डेमो हेरिसकें","मन पर्यो")) return "demo";
+  if(has("erp","billing","inventory","stock","crm","software","website","app","jigri","saas","accounting","restaurant","kot","pos","ehajiri","बिलिङ","सफ्टवेयर","बिल")) return "software";
   if(has("repair","bigo","bigryo","maintenance","problem","issue","error","not working","support","baneko","bend","बिग्र","समस्या","बनेन","चल","बिग्रियो","मर्मत")) return "support";
   if(has("marketing","digital","ai automation","automation","facebook","tiktok","ads")) return "marketing";
   if(has("namaste","hello","hi ","hey","नमस्ते","सलाम","hajur","हजुर")) return "greet";
@@ -190,6 +254,11 @@ function saveLead(o){
       source:{landing:location.pathname}, status:"new", followUp:"", assignee:"",
       history:[{ts:new Date().toISOString(),note:"Prixna AI autopilot: "+(o.note||"chat enquiry")}] };
     arr.unshift(lead); saveJSON(k,arr);
+    try{
+      if(o.name) localStorage.setItem("prixna_customer_name", o.name);
+      if(o.phone) localStorage.setItem("prixna_customer_phone", o.phone);
+      if(o.email) localStorage.setItem("prixna_customer_email", o.email);
+    }catch(e){}
     // Phase 2 autopilot: instant Sheet log + staff alert (queued offline-safe)
     try { if (window.PRIXNA_NOTIFY) window.PRIXNA_NOTIFY.push("lead", lead); } catch (e) {}
     // optional backend forward
@@ -203,6 +272,11 @@ function saveTicket(o){
   var t={id:uid("T-"),createdAt:new Date().toISOString(),name:o.name||"",phone:o.phone||"",email:o.email||"",
     device:o.device||"",problem:o.problem||"",priority:o.priority||"Medium",status:"open",transcript:o.transcript||""};
   arr.unshift(t); saveJSON(LS_TICKETS,arr);
+  try{
+    if(o.name) localStorage.setItem("prixna_customer_name", o.name);
+    if(o.phone) localStorage.setItem("prixna_customer_phone", o.phone);
+    if(o.email) localStorage.setItem("prixna_customer_email", o.email);
+  }catch(e){}
   try { if (window.PRIXNA_NOTIFY) window.PRIXNA_NOTIFY.push("ticket", t); } catch (e) {}
   return t;
 }
@@ -211,8 +285,52 @@ function saveBooking(o){
   var b={id:uid("B-"),createdAt:new Date().toISOString(),name:o.name||"",phone:o.phone||"",email:o.email||"",
     service:o.service||"",day:o.day||"",time:o.time||"",location:o.location||"",status:"confirmed"};
   arr.unshift(b); saveJSON(LS_BOOKINGS,arr);
+  try{
+    if(o.name) localStorage.setItem("prixna_customer_name", o.name);
+    if(o.phone) localStorage.setItem("prixna_customer_phone", o.phone);
+    if(o.email) localStorage.setItem("prixna_customer_email", o.email);
+  }catch(e){}
   try { if (window.PRIXNA_NOTIFY) window.PRIXNA_NOTIFY.push("booking", b); } catch (e) {}
   return b;
+}
+function getCustomerProfile(){
+  var name = (state && state.data && state.data.name) || "";
+  var phone = (state && state.data && state.data.phone) || "";
+  var email = (state && state.data && state.data.email) || "";
+  try{
+    if(!name) name = localStorage.getItem("prixna_customer_name") || "";
+    if(!phone) phone = localStorage.getItem("prixna_customer_phone") || "";
+    if(!email) email = localStorage.getItem("prixna_customer_email") || "";
+  }catch(e){}
+  var bookings = loadJSON(LS_BOOKINGS, []);
+  var latestBooking = null;
+  if(bookings && bookings.length){
+    latestBooking = bookings[0];
+    if(!name && latestBooking.name) name = latestBooking.name;
+    if(!phone && latestBooking.phone) phone = latestBooking.phone;
+    if(!email && latestBooking.email) email = latestBooking.email;
+  }
+  if(!name || !phone){
+    var leads = loadJSON("prixna_leads_v1", []);
+    if(leads && leads.length){
+      for(var i=0; i<leads.length; i++){
+        if(!name && leads[i].name) name = leads[i].name;
+        if(!phone && leads[i].phone) phone = leads[i].phone;
+        if(!email && leads[i].email) email = leads[i].email;
+        if(name && phone) break;
+      }
+    }
+  }
+  var age = "";
+  try{ age = localStorage.getItem("prixna_customer_age") || ""; }catch(e){}
+  return { name: name.trim(), phone: phone.trim(), email: email.trim(), age: age.trim(), latestBooking: latestBooking };
+}
+function parseAgeNumber(str){
+  if(!str) return 0;
+  var devMap = {"०":"0","१":"1","२":"2","३":"3","४":"4","५":"5","६":"6","७":"7","८":"8","९":"9"};
+  var normalized = String(str).replace(/[०-९]/g, function(d){ return devMap[d] || d; });
+  var m = normalized.match(/\d+/);
+  return m ? parseInt(m[0], 10) : 0;
 }
 function validPhone(p){ var d=String(p||"").replace(/\D/g,""); return d.length>=10&&d.length<=14?d:null; }
 
@@ -247,17 +365,607 @@ function icsDownloadLink(title, start, end, loc, desc){
 }
 
 /* ---------- contextual intelligence & answers ---------- */
-var LINKS = { shop:"shop.html", quote:"quote.html", repair:"repair-maintenance.html", contact:"contact.html", jigri:"https://jigritools.com/" };
+function getLink(key){
+  var isNext = (typeof window !== "undefined" && (
+    (window.PRIXNA && window.PRIXNA.isNextApp) ||
+    (window.location && typeof window.location.pathname === "string" && !/\.html$/i.test(window.location.pathname) && window.location.protocol !== "file:")
+  ));
+  var nextLinks = {
+    shop: "/solutions/hardware-infrastructure",
+    quote: "/contact",
+    repair: "/solutions/it-support-maintenance",
+    contact: "/contact",
+    demo: "/demo",
+    cctv: "/solutions/cctv-security",
+    biometric: "/solutions/biometric-access",
+    networking: "/solutions/networking-servers",
+    marketing: "/solutions/digital-marketing-ai",
+    bulk: "/contact?service=Bulk%20%2F%20Dealer%20Enquiry",
+    feedback: "/contact",
+    jigri: "https://jigritools.com/"
+  };
+  var staticLinks = {
+    shop: "shop.html",
+    quote: "quote.html",
+    repair: "repair-maintenance.html",
+    contact: "contact.html",
+    demo: "demo.html",
+    cctv: "cctv-security.html",
+    biometric: "biometric-access.html",
+    networking: "networking-servers.html",
+    marketing: "digital-marketing-ai.html",
+    bulk: "bulk-quote.html",
+    feedback: "feedback.html",
+    jigri: "https://jigritools.com/"
+  };
+  var table = isNext ? nextLinks : staticLinks;
+  return table[key] || staticLinks[key] || "#";
+}
+
+var LINKS = {
+  get shop() { return getLink("shop"); },
+  get quote() { return getLink("quote"); },
+  get repair() { return getLink("repair"); },
+  get contact() { return getLink("contact"); },
+  get demo() { return getLink("demo"); },
+  get cctv() { return getLink("cctv"); },
+  get biometric() { return getLink("biometric"); },
+  get networking() { return getLink("networking"); },
+  get marketing() { return getLink("marketing"); },
+  get bulk() { return getLink("bulk"); },
+  get feedback() { return getLink("feedback"); },
+  get jigri() { return getLink("jigri"); }
+};
+
+/* ---------- software demo flow (admin-editable via dashboard) ---------- */
+var BUILTIN_DEMOS = [
+  {
+    id: "jigri-erp",
+    name: "Jigri ERP — Billing + Inventory",
+    tagline: "VAT/PAN billing, stock & day-book for retail, wholesale and marts across Nepal",
+    category: "Billing & ERP",
+    icon: "🧾",
+    duration: "4 min demo",
+    features: [
+      "VAT/PAN invoice printing in 20 seconds",
+      "Real-time stock alerts & purchase tracking",
+      "Daily sales & profit/loss summary",
+      "Bilingual interface (Nepali & English)"
+    ],
+    audience: "Retail shops, wholesale, supermarkets, hardware stores",
+    consultService: "Business Software / SaaS Demo",
+    planHint: "Custom NPR plan with setup, staff training & local support"
+  },
+  {
+    id: "restaurant-pos",
+    name: "Restaurant & Hotel POS + KOT",
+    tagline: "Table management, kitchen KOT & split billing in one screen",
+    category: "Hospitality",
+    icon: "🍽️",
+    duration: "3 min demo",
+    features: [
+      "Visual floor plan & live table orders",
+      "Instant 1-click KOT printing to kitchen",
+      "Split bills, discounts & VAT billing",
+      "Daily cash collection & steward reports"
+    ],
+    audience: "Restaurants, cafes, bakeries, bars, hotels",
+    consultService: "Restaurant / Hospitality Solution",
+    planHint: "POS subscription + setup quoted in NPR with on-site training"
+  },
+  {
+    id: "jigri-crm",
+    name: "Jigri CRM — Leads & Pipeline",
+    tagline: "Never lose a customer enquiry or follow-up again",
+    category: "CRM",
+    icon: "📊",
+    duration: "3 min demo",
+    features: [
+      "Centralized lead inbox across website & calls",
+      "Automated WhatsApp & call follow-up reminders",
+      "Quotation pipeline & deal stages",
+      "Sales executive team performance tracking"
+    ],
+    audience: "B2B businesses, service agencies, trading & sales teams",
+    consultService: "Accounting / ERP / CRM",
+    planHint: "Per-user flexible NPR subscription with setup assistance"
+  },
+  {
+    id: "ehajiri-attendance",
+    name: "eHajiri + Biometric Attendance",
+    tagline: "Fingerprint device integration + mobile attendance & payroll",
+    category: "Attendance",
+    icon: "👆",
+    duration: "3 min demo",
+    features: [
+      "Biometric fingerprint/face machine integration",
+      "Staff mobile attendance & leave tracking",
+      "Monthly automated payroll & shift calculation",
+      "Valley-wide on-site machine installation"
+    ],
+    audience: "Offices, schools, colleges, factories, health clinics",
+    consultService: "Attendance & Payroll",
+    planHint: "Hardware device + cloud subscription bundle with warranty"
+  },
+  {
+    id: "jigritools-suite",
+    name: "JigriTools — 30+ Free Nepali Tools",
+    tagline: "BS↔AD date converter, EMI, Tax FY 2082/83, Unicode & QR",
+    category: "Free Tools",
+    icon: "🧰",
+    duration: "2 min tour",
+    features: [
+      "100% Free online tools — no login required",
+      "Official Bikram Sambat date converter & Nepali calendar",
+      "Salary tax calculator FY 2082/83 & loan EMI calculator",
+      "Built & maintained proudly by Prixna IT Solution"
+    ],
+    audience: "Every business owner, accountant, student & professional",
+    consultService: "JigriTools Enquiry",
+    planHint: "Free forever — visit jigritools.com"
+  }
+];
+
+function demosForAI(){
+  try{
+    if(window.PRIXNA_DEMOS && typeof window.PRIXNA_DEMOS.active === "function"){
+      var act = window.PRIXNA_DEMOS.active();
+      if(act && act.length) return act;
+    }
+    var v = JSON.parse(localStorage.getItem("prixna_demos_v1")||"null");
+    if(Array.isArray(v) && v.length){
+      var filtered = v.filter(function(d){ return d && d.active !== false; });
+      if(filtered.length) return filtered;
+    }
+  }catch(e){}
+  return BUILTIN_DEMOS.slice();
+}
+
+// Background seed cache
+try{
+  if(typeof window !== "undefined" && !localStorage.getItem("prixna_demos_v1")){
+    fetch("/data/software-demos.json")
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if(j && Array.isArray(j.demos)) localStorage.setItem("prixna_demos_v1", JSON.stringify(j.demos));
+      }).catch(function(){});
+  }
+}catch(e){}
+
+function demoPageLink(id){
+  var isNext = (typeof window !== "undefined" && (
+    (window.PRIXNA && window.PRIXNA.isNextApp) ||
+    (window.location && typeof window.location.pathname === "string" && !/\.html$/i.test(window.location.pathname) && window.location.protocol !== "file:")
+  ));
+  var base = isNext ? "/demo" : "demo.html";
+  return id ? (base + "?product=" + encodeURIComponent(id)) : base;
+}
+
+function findDemosByText(text){
+  var t = (text||"").toLowerCase();
+  var all = demosForAI();
+  if(!all.length) return [];
+  var scored = [];
+  all.forEach(function(d){
+    var hay = ((d.name||"")+" "+(d.tagline||"")+" "+(d.category||"")+" "+(d.id||"")+" "+(d.audience||"")+" "+((d.features||[]).join(" "))).toLowerCase();
+    var score = 0;
+    // ERP / Billing
+    if(/(erp|billing|inventory|stock|account|बिलिङ|बिल|स्टक|खाता|पसल|मार्ट|wholesale|retail)/i.test(t) && /erp|billing|inventory|account/i.test(hay)) score += 6;
+    if(/jigri-erp/.test(d.id) && /(erp|billing|पसल|स्टक|बिल)/i.test(t)) score += 5;
+    // Restaurant / POS
+    if(/(pos|restaurant|hotel|kot|cafe|food|रेस्टुरेन्ट|होटेल|क्याफे|टेबल|किचेन|table|kitchen)/i.test(t) && /pos|restaurant|hotel|kot/i.test(hay)) score += 6;
+    if(/restaurant-pos/.test(d.id) && /(pos|restaurant|होटेल|रेस्टुरेन्ट|kot)/i.test(t)) score += 5;
+    // CRM
+    if(/(crm|lead|pipeline|follow|ग्राहक|सिआरएम)/i.test(t) && /crm|lead/i.test(hay)) score += 6;
+    if(/jigri-crm/.test(d.id) && /(crm|lead|सिआरएम|फलो)/i.test(t)) score += 5;
+    // Attendance / eHajiri
+    if(/(attend|hajiri|ehajiri|payroll|biometric|school|staff|हाजिरी|बायोमेट्रिक|पेरोल|फिंगर)/i.test(t) && /attend|hajiri|payroll|biometric/i.test(hay)) score += 6;
+    if(/ehajiri-attendance/.test(d.id) && /(hajiri|attend|हाजिरी|बायोमेट्रिक|biometric)/i.test(t)) score += 5;
+    // Tools
+    if(/(jigri\s*tool|free tool|unicode|emi|date convert|टुल)/i.test(t) && /jigri|tool/i.test(hay)) score += 6;
+    // Exact ID match
+    if(new RegExp("(?:^|[^a-z0-9])" + d.id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?:$|[^a-z0-9])", "i").test(t)) score += 10;
+    // Word overlap
+    var words = t.replace(/[^\w\u0900-\u097F\s]/g," ").split(/\s+/).filter(function(w){return w.length>3;});
+    words.forEach(function(w){ if(hay.indexOf(w)>-1) score += 2; });
+    if(score>0) scored.push({d:d,score:score});
+  });
+  scored.sort(function(a,b){return b.score-a.score;});
+  return scored.map(function(s){return s.d;});
+}
+
+/* Smart contextual resolution of which demo product the user wants */
+function getSmartDemoContext(text){
+  var all = demosForAI();
+  if(!all || !all.length) return null;
+  var t = (text || "").toLowerCase();
+
+  // 1. Direct query matching in current text (highest confidence)
+  var direct = findDemosByText(t);
+  if(direct && direct.length){
+    // If the text specifically mentions ERP, POS, CRM, attendance, or only 1 match
+    if(direct.length === 1 || /(erp|pos|crm|attend|hajiri|billing|restaurant|hotel|kot|biometric|payroll|पसल|रेस्टुरेन्ट)/i.test(t)){
+      return direct[0];
+    }
+  }
+
+  // 2. Explicit ID or URL parameter match
+  var idMatch = String(text || "").match(/(?:product|demo)=([a-z0-9\-]+)/i);
+  if(idMatch){
+    for(var i = 0; i < all.length; i++){
+      if(all[i].id === idMatch[1]) return all[i];
+    }
+  }
+
+  // 3. Last discussed demo in this session
+  if(state && state.lastDiscussedDemo){
+    for(var j = 0; j < all.length; j++){
+      if(all[j].id === state.lastDiscussedDemo) return all[j];
+    }
+  }
+
+  // 4. Last discussed product / shop item in session
+  if(state && state.lastProduct){
+    var pName = ((state.lastProduct.name||"") + " " + (state.lastProduct.category||"") + " " + (state.lastProduct.description||"")).toLowerCase();
+    var fromP = findDemosByText(pName);
+    if(fromP && fromP.length) return fromP[0];
+  }
+
+  // 5. Scan recent chat messages in history (last 5 messages from user or bot)
+  try {
+    if(typeof history !== "undefined" && history && history.length){
+      var recentHistory = history.slice(-5).map(function(m){ return stripTags(m.html || ""); }).join(" ").toLowerCase();
+      var fromHist = findDemosByText(recentHistory);
+      if(fromHist && fromHist.length) return fromHist[0];
+    }
+  }catch(e){}
+
+  // 6. Active webpage path context (e.g. browsing a specific service page)
+  try {
+    var path = (typeof window !== "undefined" && window.location && window.location.pathname) ? window.location.pathname.toLowerCase() : "";
+    if(/restaurant|hospitality|cafe|food|kot|hotel/i.test(path)){
+      for(var k = 0; k < all.length; k++){ if(all[k].id === "restaurant-pos") return all[k]; }
+    }
+    if(/accounting|billing|erp|stock|inventory/i.test(path)){
+      for(var k = 0; k < all.length; k++){ if(all[k].id === "jigri-erp") return all[k]; }
+    }
+    if(/crm|leads|pipeline/i.test(path)){
+      for(var k = 0; k < all.length; k++){ if(all[k].id === "jigri-crm") return all[k]; }
+    }
+    if(/attendance|biometric|hajiri|payroll/i.test(path)){
+      for(var k = 0; k < all.length; k++){ if(all[k].id === "ehajiri-attendance") return all[k]; }
+    }
+    if(/jigritools|tools/i.test(path)){
+      for(var k = 0; k < all.length; k++){ if(all[k].id === "jigritools-suite") return all[k]; }
+    }
+  }catch(e){}
+
+  return null;
+}
+
+function singleDemoSmartAnswer(d, ne){
+  state.lastDiscussedDemo = d.id;
+  try{ if(window.PRIXNA_LOG) window.PRIXNA_LOG("ai_demo_view", d.id); }catch(e){}
+
+  var link = demoPageLink(d.id);
+  var consult = LINKS.quote + "?service=" + encodeURIComponent(d.consultService || d.name) + "&product=" + encodeURIComponent(d.id);
+  var num = (window.PRIXNA || {}).whatsappNumber || "9779813714582";
+  var wa = "https://wa.me/" + num + "?text=" + encodeURIComponent("Hello Prixna IT Solution! I want to watch/know more about the " + d.name + " demo (" + link + "). Please guide me on free consultation & pricing.");
+
+  var feats = "";
+  if(d.features && d.features.length){
+    feats = d.features.slice(0, 4).map(function(f){ return "• " + esc(f); }).join("\n");
+  }
+
+  var webUrl = d.websiteUrl || d.liveDemoUrl || "";
+  var webCtaNe = webUrl ? "👉 <a href='" + esc(webUrl) + "' target='_blank' rel='noopener'>🌐 <b>उत्पादनको वेबसाइट / लाइभ एप खोल्नुहोस् ↗</b></a>\n" : "";
+  var webCtaEn = webUrl ? "👉 <a href='" + esc(webUrl) + "' target='_blank' rel='noopener'>🌐 <b>Visit Official Product Website ↗</b></a>\n" : "";
+
+  if(ne){
+    return "🎬 <b>" + (d.icon||"💼") + " " + esc(d.name) + " — भिडियो डेमो</b>\n" +
+      "<i>" + esc(d.tagline || "") + "</i>\n\n" +
+      "हाम्रो <b>डेमो थिएटर</b> मा " + esc(d.duration || "२–४ मिनेट") + " को भिडियो तुरुन्त हेर्नुहोस्:\n" +
+      "👉 <a href='" + link + "' class='prixna-ai-demo-cta'><b>🎬 " + esc(d.name) + " डेमो हेर्नुहोस् ↗</b></a>\n" +
+      webCtaNe + "\n" +
+      (feats ? "✨ <b>यो डेमोमा देख्न पाउनुहुनेछ:</b>\n" + feats + "\n\n" : "") +
+      (d.audience ? "👥 <b>उपयुक्त:</b> " + esc(d.audience) + "\n\n" : "") +
+      "💡 <b>अर्को कदम:</b> डेमो मन परे <b>निःशुल्क परामर्श</b> लिनुहोस् — हाम्रो टिमले तपाईंको काम बुझेर सेटअप, स्टाफ तालिम र नेपाली दररेट मिलाइदिनेछ:\n" +
+      "👉 <a href='" + consult + "'><b>🆓 निःशुल्क परामर्श बुक गर्नुहोस्</b></a>\n" +
+      "👉 <a href='" + wa + "' target='_blank' rel='noopener'>💬 WhatsApp मा कुरा गर्नुहोस्</a>\n\n" +
+      "👉 <a href='" + demoPageLink("") + "'>🎭 सबै सफ्टवेयर डेमोहरू हेर्नुहोस्</a>";
+  }
+
+  return "🎬 <b>" + (d.icon||"💼") + " " + esc(d.name) + " — Video Demo</b>\n" +
+    "<i>" + esc(d.tagline || "") + "</i>\n\n" +
+    "Watch the complete " + esc(d.duration || "2–4 min") + " walkthrough directly in our <b>Demo Theatre</b>:\n" +
+    "👉 <a href='" + link + "' class='prixna-ai-demo-cta'><b>🎬 Watch " + esc(d.name) + " Demo ↗</b></a>\n" +
+    webCtaEn + "\n" +
+    (feats ? "✨ <b>Highlights in this demo:</b>\n" + feats + "\n\n" : "") +
+    (d.audience ? "👥 <b>Best for:</b> " + esc(d.audience) + "\n\n" : "") +
+    "💡 <b>Next Step:</b> Liked what you saw? Get a <b>free 1-on-1 consultation & setup quote</b> for your business:\n" +
+    "👉 <a href='" + consult + "'><b>🆓 Book Free Consultation</b></a>\n" +
+    "👉 <a href='" + wa + "' target='_blank' rel='noopener'>💬 Chat on WhatsApp</a>\n\n" +
+    "👉 <a href='" + demoPageLink("") + "'>🎭 Browse All Software Demos</a>";
+}
+
+function demoListAnswer(ne, highlight){
+  var all = demosForAI();
+  if(!all.length){
+    return ne
+      ? "🎬 <b>सफ्टवेयर डेमो:</b> हाम्रो डेमो थिएटर तयार हुँदैछ। तपाईं कुन सफ्टवेयर हेर्न चाहनुहुन्छ — बिलिङ (ERP), रेस्टुरेन्ट POS, CRM वा हाजिरी? भन्नुहोस्, म तुरुन्त डेमो मिलाइदिन्छु। 👉 <a href='"+LINKS.quote+"?service=Business%20Software%20%2F%20SaaS%20Demo'>निःशुल्क डेमो माग्नुहोस्</a>"
+      : "🎬 <b>Software Demos:</b> Our Demo Theatre is live. Which software would you like to watch — Billing (ERP), Restaurant POS, CRM, or Attendance? Reply or request here: 👉 <a href='"+LINKS.quote+"?service=Business%20Software%20%2F%20SaaS%20Demo'>Request free demo</a>";
+  }
+
+  // If a single product is highlighted/matched, show single smart demo!
+  if(highlight && highlight.length === 1){
+    return singleDemoSmartAnswer(highlight[0], ne);
+  }
+
+  var items = (highlight && highlight.length ? highlight : all).slice(0, 4);
+  function line(d, idx){
+    return (idx + 1) + ". " + (d.icon||"💼") + " <b>" + esc(d.name) + "</b> (" + esc(d.duration||"२–४ मिनेट") + ")\n" +
+      "   • <i>" + esc(d.tagline||"") + "</i>\n" +
+      "   👉 <a href='" + demoPageLink(d.id) + "'><b>🎬 " + (ne ? "यो डेमो हेर्नुहोस्" : "Watch " + esc(d.name) + " Demo") + " ↗</b></a>";
+  }
+
+  var theatreLink = demoPageLink("");
+
+  if(ne){
+    return "🎬 <b>प्रिक्सना सफ्टवेयर डेमो थिएटर:</b>\n" +
+      "हाम्रो डेमो थिएटरमा हाम्रा प्रमुख सफ्टवेयरहरूको २–४ मिनेटको भिडियो हेर्न सकिन्छ! कुन सफ्टवेयर हेर्न चाहनुहुन्छ, सिधै लिंक थिच्नुहोस्:\n\n" +
+      items.map(function(d, i){ return line(d, i); }).join("\n\n") +
+      "\n\n👉 <a href='" + theatreLink + "' style='font-weight:700;'>🎭 सबै डेमो थिएटरमा हेर्नुहोस् ↗</a>\n\n" +
+      "💡 <i>कुनै पनि सफ्टवेयरको नाम भन्नुहोस् (जस्तै: 'ERP डेमो' वा 'POS डेमो') वा तलका बटनहरू थिच्नुहोस्!</i>";
+  }
+
+  return "🎬 <b>Prixna Software Demo Theatre:</b>\n" +
+    "Watch 2–4 minute video walkthroughs of our key business softwares right inside our Demo Theatre! Select any product to watch:\n\n" +
+    items.map(function(d, i){ return line(d, i); }).join("\n\n") +
+    "\n\n👉 <a href='" + theatreLink + "' style='font-weight:700;'>🎭 Browse All Demos in Demo Theatre ↗</a>\n\n" +
+    "💡 <i>Tap any link above to start watching, or select a product button below!</i>";
+}
+
+function demoWatchedAnswer(d, ne){
+  try{ if(window.PRIXNA_LOG) window.PRIXNA_LOG("ai_demo_interested", d.id); }catch(e){}
+  var cl = LINKS.quote + "?service=" + encodeURIComponent(d.consultService||"Business Software / SaaS Demo") + "&product=" + encodeURIComponent(d.id);
+  var wa = "https://wa.me/"+WA_NUM+"?text="+encodeURIComponent("Hello Prixna! I watched the "+d.name+" demo ("+demoPageLink(d.id)+") and I am interested. Please arrange free consultation + subscription details.");
+  return ne
+    ? "🎉 <b>बधाई छ!</b> तपाईंले <b>" + esc(d.name) + "</b> को डेमो हेर्नुभयो — अब अर्को २ स्टेप बाँकी छ:\n\n<b>2️⃣ निःशुल्क परामर्श:</b> हामी तपाईंको व्यवसायको दैनिक काम (बिलिङ/स्टक/टेबल/KOT/हाजिरी) बुझ्छौं — फोन, WhatsApp वा उपत्यकामा निःशुल्क साइट भिजिट।\n<b>3️⃣ सब्सक्रिप्सन:</b> " + esc(d.planHint||"NPR कोटेसनपछि सरल प्लान") + "। सेटअप + स्टाफ तालिम + सपोर्टसहित।\n\n👉 <a href='" + cl + "'><b>🆓 निःशुल्क परामर्श बुक गर्नुहोस्</b></a>\n👉 <a href='" + wa + "' target='_blank' rel='noopener'>💬 WhatsApp मा कुरा गर्नुहोस्</a>\n\nअहिले नै बुकिङ गरिदिऊँ? <b>'book'</b> लेख्नुहोस् — म ३० सेकेन्डमा समय मिलाइदिन्छु।"
+    : "🎉 <b>Great — you watched the " + esc(d.name) + " demo!</b> Two quick steps left:\n\n<b>2️⃣ Free consultation:</b> we study your daily workflow (billing/stock/tables/KOT/attendance) — by call, WhatsApp or free Valley site visit.\n<b>3️⃣ Subscribe:</b> " + esc(d.planHint||"simple NPR plan after consultation") + ". Setup + staff training + support included.\n\n👉 <a href='" + cl + "'><b>🆓 Book free consultation</b></a>\n👉 <a href='" + wa + "' target='_blank' rel='noopener'>💬 Chat on WhatsApp</a>\n\nWant me to book you now? Type <b>'book'</b> — 30 seconds. Or ask <i>'price'</i> / <i>'features'</i> for this software.";
+}
+
+
+/* ---------- NEW showcase (replaces old shop list for recommendations) ---------- */
+function showcaseForAI(){
+  try{
+    if(window.PRIXNA_SHOWCASE) return window.PRIXNA_SHOWCASE.items();
+    var v = JSON.parse(localStorage.getItem("prixna_showcase_v1") || "{}");
+    return ((v && v.items) || []).filter(function (x) { return x.active !== false; });
+  }catch(e){ return []; }
+}
+function showcaseAnswer(ne, matched){
+  var all = showcaseForAI();
+  if(!all.length){
+    return ne
+      ? "✨ <b>नयाँ शोकेस तयार हुँदैछ।</b> तपाईंलाई के चाहिन्छ — सफ्टवेयर (बिलिङ/POS/CRM/हाजिरी) वा हार्डवेयर (CCTV/ल्यापटप/नेटवर्क)? भन्नुहोस्, म मिल्दो विकल्प + डेमो/कोटेसन मिलाइदिन्छु।"
+      : "✨ <b>Our new showcase is being stocked.</b> What do you need — software (billing/POS/CRM/attendance) or hardware (CCTV/computers/network)? Tell me and I'll match options + demo/quote.";
+  }
+  var list = (matched && matched.length ? matched : all.filter(function (x) { return x.featured; }).concat(all).filter(function (x, i, a) { return a.indexOf(x) === i; })).slice(0, 4);
+  function line(x){
+    var link = x.type === "software" && x.demoId ? "demo.html?product=" + encodeURIComponent(x.demoId) : "showcase.html?item=" + encodeURIComponent(x.id);
+    var cta = x.type === "software" && x.demoId ? "🎬 Watch demo" : "🛒 View & order";
+    var price = (x.priceNPR && +x.priceNPR > 0) ? x.priceNPR : (x.priceNote || "Price on request");
+    return "• " + (x.icon || "📦") + " <b>" + esc(x.name) + "</b> — " + esc(price) + "<br>&nbsp;&nbsp;&nbsp;👉 <a href='" + link + "'><b>" + cta + "</b></a>";
+  }
+  return (ne
+    ? "✨ <b>नयाँ शोकेसबाट मिल्दा विकल्पहरू:</b>\n"
+    : "✨ <b>Matching picks from our new showcase:</b>\n")
+    + list.map(line).join("\n")
+    + (ne
+      ? "\n\n👉 <a href='showcase.html'><b>सबै शोकेस हेर्नुहोस्</b></a> · सफ्टवेयर भए पहिले 🎬 डेमो हेर्नुहोस्, त्यसपछि निःशुल्क परामर्श + सब्सक्रिप्सन। हार्डवेयर भए checkout मा अर्डर + पेमेन्ट, स्टाफले verify गरेपछि मात्र activate।"
+      : "\n\n👉 <a href='showcase.html'><b>Browse full showcase</b></a> · Software: watch 🎬 demo → free consultation → subscribe. Hardware: order at checkout → pay → staff verifies before activation.");
+}
 
 function getContextualAnswer(text, ne){
   var t = (text || "").toLowerCase();
   var has = function(){ return matchAny(t, Array.prototype.slice.call(arguments)); };
 
-  // 1. Identity & Name ("Who are you?" / "What is your name?" / "तपाईंको नाम के हो?")
-  if(has("what is your name", "whats your name", "what's your name", "who are you", "who r u", "tapaiko naam", "tapai ko naam", "naam k ho", "naam ke ho", "tapai ko ho", "tapai ko hunuhunchha", "tapai ko hununcha", "तपाईंको नाम", "तपाईं को हो", "तपाईं को हुनुहुन्छ", "नाम के हो")){
+  // 0.0 NEW showcase routing (preferred over old shop list)
+  if(has("showcase","new items","new products","latest items","hardware showcase","software showcase","शोकेस","नयाँ सामान") || /showcase\.html\?item=/.test(text)){
+    var m = null;
+    try{
+      if(window.PRIXNA_SHOWCASE){
+        var idm = String(text || "").match(/item=([a-z0-9\-]+)/i);
+        if(idm) m = [window.PRIXNA_SHOWCASE.get(idm[1])].filter(Boolean);
+      }
+    }catch(e){}
+    if(!m || !m.length){
+      try{ m = window.PRIXNA_SHOWCASE ? window.PRIXNA_SHOWCASE.findByText(text) : []; }catch(e){ m = []; }
+    }
+    try{ if(window.PRIXNA_LOG) window.PRIXNA_LOG("ai_recommend", "showcase:" + ((m && m[0] && m[0].id) || "list")); }catch(e){}
+    return showcaseAnswer(ne, m);
+  }
+
+  // 0. Follow-up for full specs/details if customer asks after seeing a product
+  if(has("specs", "spec", "specification", "full details", "details", "features", "विवरण", "फिचर्स", "सबै विवरण", "विस्तृत विवरण")){
+    if(state && state.lastProduct){
+      return formatExcelResults([state.lastProduct], ne, true);
+    }
+  }
+
+  // 0.05 Follow-up booking for last discussed product if customer says "book one for me", "book one", "book this", "book it", etc.
+  var isFollowUpBooking = /\b(book(\s*(one|this|it|now|for\s*me))?|order(\s*(one|this|it|now|for\s*me))?|reserve(\s*(one|this|it|now|for\s*me))?|buy(\s*(one|this|it|now))?)\b/i.test(t) ||
+    /(यो\s*बुक|यो\s*अर्डर|एउटा\s*बुक|एउटा\s*अर्डर|बुक\s*गरिदिनुस्|अर्डर\s*गरिदिनुस्|यसलाई\s*बुक|यही\s*बुक|एउटा\s*चाहियो)/.test(t);
+  if(isFollowUpBooking && state && state.lastProduct){
+    var topP = state.lastProduct;
+    state.mode = "booking";
+    state.step = 1;
+    state.data = {
+      service: topP.name + " (" + topP.price + ")",
+      product: topP
+    };
+    return ne
+      ? "🎉 <b>" + esc(topP.name) + " को अर्डर तथा बुकिङ:</b>\n💰 <b>मूल्य:</b> " + esc(topP.price) + " (📦 " + esc(topP.stock) + (topP.warranty ? " · 🛡️ " + esc(topP.warranty) : "") + ")\n" + (topP.notes ? "🎁 <i>" + esc(topP.notes) + "</i>\n" : "") + "म तपाईंको लागि यो सामान तुरुन्तै सुरक्षित/बुक गरिदिन्छु हजुर!\n\n<b>चरण १/४:</b> तपाईंको <b>पूरा नाम</b> के हो हजुर?"
+      : "🎉 <b>Reserving " + esc(topP.name) + " for you!</b> 💻\n💰 <b>Price:</b> " + esc(topP.price) + " (📦 Status: " + esc(topP.stock) + (topP.warranty ? " · 🛡️ " + esc(topP.warranty) : "") + ")\n" + (topP.notes ? "🎁 <i>" + esc(topP.notes) + "</i>\n" : "") + "I'd be glad to secure this reservation and prepare your order!\n\n<b>Step 1/4:</b> What is your <b>full name</b>?";
+  }
+
+  // 0.06 Software demo flow: customer asks for demo / watched demo / wants subscription
+  var isDemoAsk = has("demo","demonstration","trial video","watch video","video link","youtube","watch demo","live demo","डेमो","भिडियो","ट्रायल")
+    || has("watched demo","saw demo","saw video","subscribe software","software subscription","सब्सक्रिप्सन","मन पर्यो");
+  if(isDemoAsk || /demo\.html\?product=/.test(text) || /\/demo\?product=/.test(text)){
+    var idMatch = String(text||"").match(/(?:product|demo)=([a-z0-9\-]+)/i);
+    if(idMatch){
+      var dd = null;
+      try{ var _all = demosForAI(); for(var _i=0;_i<_all.length;_i++){ if(_all[_i].id===idMatch[1]) dd=_all[_i]; } }catch(e){}
+      if(dd){
+        if(has("watched","saw","herisake","हेरिसकें","हेरें") || has("interested","मन पर्यो","subscribe","subscription","सब्सक्रिप्सन","buy","किन्ने")){
+          return demoWatchedAnswer(dd, ne);
+        }
+        return singleDemoSmartAnswer(dd, ne);
+      }
+    }
+
+    var smartDemo = getSmartDemoContext(text);
+    // "I watched X demo, interested" -> consultation + subscription guidance
+    if(smartDemo && (has("watched","saw","herisake","हेरिसकें","हेरें") || has("interested","मन पर्यो","subscribe","subscription","सब्सक्रिप्सन","buy","किन्ने"))){
+      return demoWatchedAnswer(smartDemo, ne);
+    }
+
+    if(smartDemo){
+      return singleDemoSmartAnswer(smartDemo, ne);
+    }
+
+    var matched = findDemosByText(text);
+    return demoListAnswer(ne, matched);
+  }
+
+  // 0.1 Check if customer asks about their booked items / order history
+  var isBookedLookup = /\b(my\s*booking(s)?|my\s*order(s)?|booked\s*item(s)?|ordered\s*item(s)?|what\s*(items\s*)?(did\s*i\s*)?(book|order)|show\s*(my\s*)?(booking|order)(s)?|check\s*(my\s*)?order|order\s*status|booking\s*details)\b/i.test(t) ||
+    /(मैले\s*बुक\s*गरे|मेरो\s*अर्डर|मेरो\s*बुकिङ|के\s*के\s*अर्डर|बुक\s*गरेको\s*सामान|अर्डर\s*लिस्ट|बुकिङ\s*विवरण)/.test(t);
+  if(isBookedLookup){
+    var bookings = loadJSON(LS_BOOKINGS, []);
+    if(!bookings || !bookings.length){
+      return ne
+        ? "🔍 <b>तपाईंको बुकिङ विवरण:</b>\nयो ब्राउजरमा हालसम्म कुनै सक्रिय बुकिङ फेला परेन हजुर।\nयदि तपाईंले अघि अर्डर गर्नुभएको थियो भने तपाईंको <b>बुकिङ ID (जस्तै: B-...)</b> वा <b>फोन नम्बर</b> दिनुहोस्, म तुरुन्त खोजिदिन्छु! अथवा नयाँ सामान अर्डर गर्न <b>'book'</b> भन्नुहोस्।"
+        : "🔍 <b>Your Bookings & Orders:</b>\nNo active bookings found on this device yet.\nIf you already booked with us, please share your <b>Booking ID (e.g. B-...)</b> or <b>phone number</b>, and I will look it up! Or type <b>'book'</b> to order any product right away.";
+    }
+
+    var listHtml = "";
+    var count = Math.min(bookings.length, 10);
+    for(var bi = 0; bi < count; bi++){
+      var bItem = bookings[bi];
+      var itemName = bItem.items || bItem.service || "Item Order";
+      var waBooking = waLink("Hello Prixna! Checking status for Booking " + bItem.id + " (" + itemName + ")");
+      listHtml += "\n" + (bi + 1) + ". 🆔 <b>" + esc(bItem.id) + "</b> — 📦 <b>" + esc(itemName) + "</b>\n" +
+        "   👤 " + esc(bItem.name) + " · 📞 " + esc(bItem.phone) + (bItem.time ? " · 🕒 " + esc(bItem.time) : "") + "\n" +
+        "   👉 <a href='" + waBooking + "' target='_blank' rel='noopener'>💬 ह्वाट्सएपमा डेलिभरी/अर्डर स्टाटस बुझ्नुहोस्</a>\n";
+    }
+
+    return ne
+      ? "📋 <b>तपाईंले बुक गर्नुभएका सामानहरूको विवरण (" + bookings.length + " वटा):</b>\n" + listHtml + "\n💡 <i>कुनै निश्चित सामानको वारेन्टी वा फिचर्स बुझ्न सामानको नाम सोध्न सक्नुहुन्छ!</i>"
+      : "📋 <b>Your Booked Items & Orders (" + bookings.length + " total):</b>\n" + listHtml + "\n💡 <i>You can ask about warranty or full specs for any of these items anytime!</i>";
+  }
+
+  // 0.2 Customer Profile & Name Lookup ("What is my name?" / "Who am I?" / "मेरो नाम के हो?")
+  var isMyNameLookup = /\b(what('?s|\s+is)\s+my\s+name|do\s+you\s+know\s+my\s+name|do\s+you\s+remember\s+(my\s+name|me)|tell\s+me\s+my\s+name|who\s+am\s+i|what('?s|\s+is)\s+my\s+(phone|number|mobile|contact|email|details)|my\s+profile|my\s+info)\b/i.test(t) ||
+    /(मेरो\s*नाम|मेरो\s*नम्बर|मेरो\s*फोन|म\s*को\s*हुँ|मेरो\s*नाम\s*के|मेरो\s*नाम\s*थाहा|मलाई\s*चिन्नुहुन्छ|mero\s*naam\s*k|mero\s*naam\s*tha|ma\s*ko\s*hu)/.test(t);
+
+  if(isMyNameLookup){
+    var prof = getCustomerProfile();
+    if(prof.name){
+      var bookingSnippet = "";
+      if(prof.latestBooking){
+        var bService = prof.latestBooking.items || prof.latestBooking.service || "Booking";
+        bookingSnippet = ne
+          ? "\n📦 <b>पछिल्लो अर्डर/बुकिङ:</b> " + esc(bService) + " (ID: <b>" + esc(prof.latestBooking.id) + "</b>)"
+          : "\n📦 <b>Latest Order:</b> " + esc(bService) + " (ID: <b>" + esc(prof.latestBooking.id) + "</b>)";
+      }
+      var contactSnippet = prof.phone ? (ne ? "\n📞 <b>सम्पर्क:</b> " + esc(prof.phone) : "\n📞 <b>Contact:</b> " + esc(prof.phone)) : "";
+      if(prof.email) contactSnippet += (ne ? "\n✉️ <b>इमेल:</b> " + esc(prof.email) : "\n✉️ <b>Email:</b> " + esc(prof.email));
+      if(prof.age) contactSnippet += (ne ? "\n🎂 <b>उमेर:</b> " + esc(prof.age) + " वर्ष" : "\n🎂 <b>Age:</b> " + esc(prof.age) + " years old");
+
+      return ne
+        ? "👤 हजुरको नाम <b>" + esc(prof.name) + "</b> हो नि हजुर! 😊" + contactSnippet + bookingSnippet + "\n\nतपाईंसँग कुराकानी गर्न पाउँदा सधैं खुसी लाग्छ, <b>" + esc(prof.name.split(" ")[0]) + "</b> जी! आज म हजुरलाई के मा सहयोग गर्न सक्छु?"
+        : "👤 Your name is <b>" + esc(prof.name) + "</b>! 😊" + contactSnippet + bookingSnippet + "\n\nIt's always great talking to you, <b>" + esc(prof.name.split(" ")[0]) + "</b>! How can I assist you with your order or anything else today?";
+    } else {
+      return ne
+        ? "तपाईंले मलाई अहिलेसम्म आफ्नो नाम बताउनुभएको छैन नि हजुर! 😊\nहजुरको शुभनाम के होला भन्नुहोस् न? वा कुनै सामान अर्डर/बुकिङ गर्दा आफ्नो नाम भन्न सक्नुहुन्छ!"
+        : "You haven't told me your name yet! 😊\nMay I know your full name? Or feel free to tell me whenever you book an order or service!";
+    }
+  }
+
+  // 0.25 User introduces their name ("My name is John" / "मेरो नाम रमेश हो")
+  var introMatch = t.match(/\b(?:my\s+name\s+is|i\s+am|call\s+me)\s+([a-zA-Z\s]{2,30})\b/i);
+  var introMatchNe = t.match(/(?:मेरो\s*नाम\s+|म\s+)([\u0900-\u097F\s]{2,30})(?:\s*हो|\s*भन्छन्)?/);
+  if(introMatch || introMatchNe){
+    var rawIntro = introMatch ? introMatch[1].trim() : introMatchNe[1].trim();
+    if(!/^(looking|fine|good|here|ready|interested|not|trying|sorry|happy|sad)$/i.test(rawIntro) && rawIntro.length >= 2 && rawIntro.length <= 40){
+      try{ localStorage.setItem("prixna_customer_name", rawIntro); }catch(e){}
+      return ne
+        ? "नमस्ते <b>" + esc(rawIntro) + "</b> जी! 🙏 हजुरसँग चिनजान गर्न पाउँदा धेरै खुसी लाग्यो।\nमैले हजुरको नाम सुरक्षित गरेँ। भन्नुहोस्, आज म के सहयोग गरूँ हजुर?"
+        : "Nice to meet you, <b>" + esc(rawIntro) + "</b>! 😊 It's a pleasure to connect with you.\nI've noted your name. How can I help you today?";
+    }
+  }
+
+  // 1. Bot Identity & Name ("Who are you?" / "What is your name?" / "तपाईंको नाम के हो?")
+  if(has("what is your name", "whats your name", "what's your name", "who are you", "who r u", "tapaiko naam", "tapai ko naam", "tapai ko ho", "tapai ko hunuhunchha", "tapai ko hununcha", "तपाईंको नाम", "तपाईं को हो", "तपाईं को हुनुहुन्छ")){
     return ne
       ? "नमस्ते हजुर! 🙏 म <b>Prixna AI</b> हुँ — प्रिक्सना आईटी सोलुसन (कोटेश्वर, काठमाडौं) को स्मार्ट डिजिटल साथी।\nम तपाईंसँग साथी जस्तै कुराकानी गर्न सक्छु, प्रविधि सम्बन्धी सही सल्लाह दिन सक्छु, र आवश्यक पर्दा हाम्रा सिनियर प्राविधिकहरूसँग जोड्न पनि सक्छु।\n\nआरामै हुनुहुन्छ नि हजुर? आज म तपाईंलाई के मा सहयोग गर्न सक्छु?"
       : "Hello there! 🙏 I'm <b>Prixna AI</b> — your friendly digital assistant from Prixna IT Solution (Koteshwor, Kathmandu).\nThink of me as your helpful tech companion: you can chat with me, ask anything about computers, CCTV, or software, or just have a friendly conversation! How are you doing today?";
+  }
+
+  // 1.05 General Age Understanding ("Does it know about age?" / "It doesn't know about age?" / "उमेरको बारेमा थाहा छ?")
+  var isGeneralAgeQuery = /\b(?:does(n'?t|\s+not)?\s+(it\s+)?know\s+(about\s+)?age|it\s+does(n'?t|\s+not)\s+know\s+(about\s+)?age|know\s+about\s+age|about\s+age|what\s+about\s+age)\b/i.test(t) ||
+    /(उमेरको\s*बारे|उमेर\s*बारे|उमेर\s*सम्बन्धी|उमेर\s*थाहा\s*छ)/.test(t);
+  if(isGeneralAgeQuery){
+    var profAgeG = null;
+    try{ profAgeG = localStorage.getItem("prixna_customer_age"); }catch(e){}
+    return ne
+      ? "मलाई उमेरको बारेमा पक्कै थाहा छ हजुर! 😊\n\n" +
+        "🤖 <b>मेरो उमेर:</b> म डिजिटल AI साथी भएकोले मान्छेको जस्तो जन्मदिन हुँदैन। मलाई सन् २०२६ मा कोटेश्वरस्थित <b>Prixna IT Solution</b> का इन्जिनियरहरूले तयार पारेका हुन् — त्यसैले म सधैं जवान, २४सै घण्टा सक्रिय र कहिल्यै नथाक्ने साथी हुँ! ⚡\n\n" +
+        "👤 <b>तपाईंको उमेर:</b> " + (profAgeG ? "हजुरले अघि आफ्नो उमेर <b>" + esc(profAgeG) + " वर्ष</b> बताउनुभएको थियो नि हजुर! 🎂" : "हामीले सामान अर्डर वा मर्मत बुकिङ गर्दा नाम र सम्पर्क मात्र सोध्छौं (उमेर सोध्दैनौं)। तर यदि हजुरले <i>'मेरो उमेर २५ वर्ष हो'</i> भनेर भन्नुभयो भने म च्याट मेमोरीमा सुरक्षित राख्छु!")
+      : "Yes, I definitely understand and know about age! 😊\n\n" +
+        "🤖 <b>My Age:</b> As an AI companion, I don't celebrate human birthdays. I was created in 2026 by the software engineering team at <b>Prixna IT Solution</b> in Koteshwor, Kathmandu — so I'm forever young, energized, and ready to assist you 24/7! ⚡\n\n" +
+        "👤 <b>Your Age:</b> " + (profAgeG ? "You shared earlier that you are <b>" + esc(profAgeG) + " years old</b>! 🎂" : "When ordering products or booking technicians with us, we only ask for your name and contact details (we never require your age). But if you tell me (e.g. <i>'I am 25 years old'</i>), I will gladly remember it in our chat memory!");
+  }
+
+  // 1.1 Bot's Age ("How old are you?" / "What is your age?" / "तपाईंको उमेर कति हो?")
+  var isBotAgeQuery = /\b(how\s+old\s+are\s+you|what('?s|\s+is)\s+your\s+age|when\s+were\s+you\s+born|your\s+age|when\s+was\s+your\s+birthday|do\s+you\s+have\s+an\s+age)\b/i.test(t) ||
+    /(तपाईंको\s*उमेर|तिम्रो\s*उमेर|तपाईं\s*कति\s*वर्ष|तिम्रो\s*उमेर\s*कति|कहिले\s*जन्म|कति\s*वर्षको\s*हुनुभयो|tapaiko\s*umer|timro\s*umer)/.test(t);
+  if(isBotAgeQuery){
+    return ne
+      ? "हाहा, म त इन्टरनेट र सफ्टवेयरको संसारमा बस्ने डिजिटल साथी भएकोले मेरो मान्छेको जस्तो उमेर र जन्मदिन हुँदैन हजुर! 🎂⚡\nमलाई सन् २०२६ मा कोटेश्वरस्थित <b>Prixna IT Solution</b> का सफ्टवेयर इन्जिनियरहरूले विकास गरेका हुन्। त्यसैले प्रविधिको हिसाबले म सधैं जवान, २४सै घण्टा सक्रिय र कहिल्यै नथाक्ने साथी हुँ! 😄\n\nहजुरको उमेर चाहिँ कति भयो नि?"
+      : "Haha, since I'm an AI companion created in code, I don't celebrate birthdays in the human way! 🎂⚡\nI was crafted in 2026 by the engineering team at <b>Prixna IT Solution</b> in Koteshwor, Kathmandu. So in human terms, I'm forever young, energized, and ready to assist you 24/7 with zero sleep required! 😄 How about you, how old are you?";
+  }
+
+  // 1.2 Customer Shares Their Age ("I am 25 years old" / "My age is 30" / "मेरो उमेर २५ वर्ष हो")
+  var shareAgeEn = t.match(/\b(?:i\s+am|i'm|my\s+age\s+is)\s+(\d{1,3})\s*(?:years?\s*old|yrs?\s*old|years?|yrs?)?\b/i);
+  var shareAgeNe = t.match(/(?:मेरो\s*उमेर\s+|म\s+)([0-9०-९]{1,3})\s*(?:वर्ष|बर्ष)?(?:\s*को\s*भएँ|\s*हो|\s*पुगेँ)?/);
+  if(shareAgeEn || shareAgeNe){
+    var parsedAge = shareAgeEn ? parseInt(shareAgeEn[1], 10) : parseAgeNumber(shareAgeNe[1]);
+    if(parsedAge >= 5 && parsedAge <= 120){
+      try{ localStorage.setItem("prixna_customer_age", String(parsedAge)); }catch(e){}
+      return ne
+        ? "वाह, धेरै राम्रो! हजुर <b>" + parsedAge + " वर्ष</b> को हुनुहुँदो रहेछ 🌟\nमैले हजुरको उमेर नोट गरेँ। भन्नुहोस्, आज के नयाँ प्रविधि, सफ्टवेयर वा सामानमा सहयोग गरूँ हजुर?"
+        : "Awesome! You are <b>" + parsedAge + " years young</b> 🌟\nI've noted that in our chat memory! What kind of tech, laptop, CCTV, or software can I assist you with today?";
+    }
+  }
+
+  // 1.3 Customer's Age Query ("What is my age?" / "Do you know my age?" / "मेरो उमेर कति हो?")
+  var isMyAgeQuery = /\b(what('?s|\s+is)\s+my\s+age|how\s+old\s+am\s+i|do\s+you\s+know\s+my\s+age|tell\s+me\s+my\s+age|my\s+age)\b/i.test(t) ||
+    /(मेरो\s*उमेर|म\s*कति\s*वर्ष|म\s*कति\s*बर्ष|मेरो\s*उमेर\s*कति|मेरो\s*उमेर\s*थाहा|mero\s*umer\s*k|mero\s*umer\s*tha)/.test(t);
+  if(isMyAgeQuery){
+    var profAge = null;
+    try{ profAge = localStorage.getItem("prixna_customer_age"); }catch(e){}
+    if(profAge){
+      return ne
+        ? "हजुरले अघि आफ्नो उमेर <b>" + esc(profAge) + " वर्ष</b> बताउनुभएको थियो नि हजुर! 😊🎂 प्रविधिको संसारमा उमेर केवल एउटा नम्बर हो — आज के सहयोग गरूँ?"
+        : "You told me earlier that you are <b>" + esc(profAge) + " years old</b>! 😊🎂 In the tech world, age is just a number — how can I help you today?";
+    } else {
+      return ne
+        ? "तपाईंले मलाई अहिलेसम्म आफ्नो उमेर बताउनुभएको छैन नि हजुर! 😊\nहामीले सामान अर्डर वा मर्मत बुकिङ गर्दा नाम, सम्पर्क र ठेगाना मात्र सोध्छौं, उमेर सोध्दैनौं।\nहजुर कति वर्षको हुनुभयो, भन्न मन लागे बताउनुहोस् न!"
+        : "I don't know your age yet! 😊 When customers book products or technician services with us, we only ask for your name and contact details, not your age.\nHow old are you, if you don't mind sharing?";
+    }
   }
 
   // 2. Wellbeing & How are you? ("How are you?" / "सञ्चै हुनुहुन्छ?" / "के छ खबर?")
@@ -347,8 +1055,8 @@ function getContextualAnswer(text, ne){
   // SSD & RAM Upgrades / Laptop Speed
   if(has("ssd", "ram", "upgrade", "slow", "speed", "fast", "storage", "मेमोरी", "अपग्रेड", "हार्डडिस्क", "ढिलो", "स्लो")){
     return ne
-      ? "⚡ <b>ल्यापटप तथा कम्प्युटर स्पिड अपग्रेड (SSD + RAM):</b>\n• <b>SSD अपग्रेड:</b> १२८GB, २५६GB, ५१२GB, १TB (NVMe M.2 / SATA SSD) — ३ गुणा बढी कम्प्युटर स्पिड!\n• <b>सुरक्षित डेटा क्लोनिङ:</b> पुरानो HDD को कुनै पनि फाइल, विन्डोज वा सफ्टवेयर नहराईकन नयाँ SSD मा सारिन्छ।\n• <b>RAM अपग्रेड:</b> DDR3 / DDR4 / DDR5 (8GB, 16GB, 32GB) तुरुन्तै थप्न सकिन्छ।\n• <b>समय:</b> कोटेश्वर शाखामा १ घण्टामै तुरुन्त एक्सप्रेस सर्भिस उपलब्ध छ।\n\nतपाईंको ल्यापटप कुन ब्रान्ड र मोडल हो? म ठ्याक्कै लाग्ने अपग्रेड र बेस्ट रेट भनिदिन्छु। 👉 <a href='repair-maintenance.html'>मर्मत सेवा</a>"
-      : "⚡ <b>Laptop & Computer Speed Upgrade (SSD & RAM):</b>\n• <b>SSD Upgrade:</b> 128GB, 256GB, 512GB, 1TB NVMe / SATA SSD — 3x faster boot & app launch.\n• <b>100% Data Clone:</b> All existing Windows files and installed software preserved from old HDD.\n• <b>RAM Upgrade:</b> DDR3, DDR4, and DDR5 (8GB, 16GB, 32GB) in stock.\n• <b>Turnaround:</b> 1-hour express service at our Koteshwor branch.\n\nTell me your laptop model, and I will recommend the exact compatible upgrade and pricing. 👉 <a href='repair-maintenance.html'>Repair Services</a>";
+      ? "⚡ <b>ल्यापटप तथा कम्प्युटर स्पिड अपग्रेड (SSD + RAM):</b>\n• <b>SSD अपग्रेड:</b> १२८GB, २५६GB, ५१२GB, १TB (NVMe M.2 / SATA SSD) — ३ गुणा बढी कम्प्युटर स्पिड!\n• <b>सुरक्षित डेटा क्लोनिङ:</b> पुरानो HDD को कुनै पनि फाइल, विन्डोज वा सफ्टवेयर नहराईकन नयाँ SSD मा सारिन्छ।\n• <b>RAM अपग्रेड:</b> DDR3 / DDR4 / DDR5 (8GB, 16GB, 32GB) तुरुन्तै थप्न सकिन्छ।\n• <b>समय:</b> कोटेश्वर शाखामा १ घण्टामै तुरुन्त एक्सप्रेस सर्भिस उपलब्ध छ।\n\nतपाईंको ल्यापटप कुन ब्रान्ड र मोडल हो? म ठ्याक्कै लाग्ने अपग्रेड र बेस्ट रेट भनिदिन्छु। 👉 <a href='"+LINKS.repair+"'>मर्मत सेवा</a>"
+      : "⚡ <b>Laptop & Computer Speed Upgrade (SSD & RAM):</b>\n• <b>SSD Upgrade:</b> 128GB, 256GB, 512GB, 1TB NVMe / SATA SSD — 3x faster boot & app launch.\n• <b>100% Data Clone:</b> All existing Windows files and installed software preserved from old HDD.\n• <b>RAM Upgrade:</b> DDR3, DDR4, and DDR5 (8GB, 16GB, 32GB) in stock.\n• <b>Turnaround:</b> 1-hour express service at our Koteshwor branch.\n\nTell me your laptop model, and I will recommend the exact compatible upgrade and pricing. 👉 <a href='"+LINKS.repair+"'>Repair Services</a>";
   }
 
   // Physical Parts: Display, Battery, Keyboard, Hinge, Charger
@@ -375,7 +1083,7 @@ function getContextualAnswer(text, ne){
   // 4-Camera / 8-Camera Specific Package
   if(has("4 camera", "4 क्यामेरा", "8 camera", "8 क्यामेरा", "package", "प्याकेज", "set", "सेट", "4ch", "8ch")){
     return ne
-      ? "🎥 <b>CCTV क्यामेरा पूर्ण प्याकेज (Hikvision / Dahua):</b>\n• <b>४ क्यामेरा कम्प्लिट सेट:</b> २ इन्डोर डोम + २ आउटडोर बुलेट (Night Vision HD/IP)।\n• <b>DVR/NVR:</b> ४-च्यानल स्मार्ट रेकर्डर + १TB सर्भिलेन्स हार्ड डिस्क (१५–२० दिन रेकर्डिङ)।\n• <b>सामग्री:</b> पावर सप्लाई, क्यामरा केबल, कनेक्टर र प्रोफेसनल वायरिङ जडान।\n• <b>मोबाइल एप:</b> मोबाइलमा निःशुल्क लाइभ हेर्ने र आवाज सुन्ने सुविधा।\n• <b>साइट भिजिट:</b> काठमाडौं उपत्यकामा निःशुल्क साइट भिजिट गरी यकिन कोटेसन दिइन्छ।\n👉 <a href='cctv-security.html'>CCTV विवरण</a> | कल गर्नुहोस्: <a href='tel:+9779813714582'>📞 ९८१३७१४५८२</a>"
+      ? "🎥 <b>CCTV क्यामेरा पूर्ण प्याकेज (Hikvision / Dahua):</b>\n• <b>४ क्यामेरा कम्प्लिट सेट:</b> २ इन्डोर डोम + २ आउटडोर बुलेट (Night Vision HD/IP)।\n• <b>DVR/NVR:</b> ४-च्यानल स्मार्ट रेकर्डर + १TB सर्भिलेन्स हार्ड डिस्क (१५–२० दिन रेकर्डिङ)।\n• <b>सामग्री:</b> पावर सप्लाई, क्यामरा केबल, कनेक्टर र प्रोफेसनल वायरिङ जडान।\n• <b>मोबाइल एप:</b> मोबाइलमा निःशुल्क लाइभ हेर्ने र आवाज सुन्ने सुविधा।\n• <b>साइट भिजिट:</b> काठमाडौं उपत्यकामा निःशुल्क साइट भिजिट गरी यकिन कोटेसन दिइन्छ।\n👉 <a href='"+LINKS.cctv+"'>CCTV विवरण</a> | कल गर्नुहोस्: <a href='tel:+9779813714582'>📞 ९८१३७१४५८२</a>"
       : "🎥 <b>Complete CCTV Packages (Hikvision & Dahua):</b>\n• <b>4-Camera Setup:</b> 2 Indoor Domes + 2 Outdoor Weatherproof Bullets with Night Vision.\n• <b>Recording:</b> 4-Channel DVR/NVR + 1TB Surveillance Hard Drive (15–20 days recording).\n• <b>Accessories:</b> Centralised power supply, quality video cables, and connectors included.\n• <b>Mobile Live View:</b> Free Hik-Connect app for smartphone live viewing anywhere.\n• <b>Free Site Visit:</b> Free inspection across Kathmandu Valley for exact quote.\n👉 Call our CCTV team: <a href='tel:+9779813714582'>📞 +977 9813714582</a>";
   }
 
@@ -431,9 +1139,8 @@ function getContextualAnswer(text, ne){
         : "🎉 <b>Reserving " + esc(topP.name) + " for you!</b> 💻\n💰 <b>Price:</b> " + esc(topP.price) + " (📦 Status: " + esc(topP.stock) + (topP.warranty ? " · 🛡️ " + esc(topP.warranty) : "") + ")\n" + (topP.notes ? "🎁 <i>" + esc(topP.notes) + "</i>\n" : "") + "I'd be glad to secure this reservation and prepare your order!\n\n<b>Step 1/4:</b> What is your <b>full name</b>?";
     }
 
-    if(has("price", "rate", "cost", "kati", "kati par", "parcha", "parchha", "मूल्य", "कति", "दाम", "कति पर्छ", "कति पर्ला", "stock", "stok", "available", "upalabdha", "उपलब्ध", "specs", "विवरण", "warranty", "वारेन्टी", "dell", "hp", "lenovo", "cctv", "camera", "ssd", "ram", "router", "pos", "erp", "biometric", "attendance")){
-      return formatExcelResults(catalogMatches, ne);
-    }
+    var wantsFullSpecs = has("specs", "spec", "specification", "detail", "details", "feature", "features", "विवरण", "फिचर्स", "सबै विवरण", "विस्तृत विवरण", "full");
+    return formatExcelResults(catalogMatches, ne, wantsFullSpecs);
   }
 
   return null;
@@ -449,41 +1156,80 @@ function answerFor(intent, text){
       return ne
         ? "नमस्ते हजुर! 🙏 म <b>Prixna AI</b> — प्रिक्सना आईटी सोलुसन (कोटेश्वर) को डिजिटल साथी। आरामै हुनुहुन्छ नि? 😊\nसफ्टवेयर (ERP/बिलिङ), CCTV क्यामेरा, कम्प्युटर/ल्यापटप मर्मत, वा सामान्य प्रविधि सम्बन्धी केही जिज्ञासा — आज म के मा सहयोग गरूँ हजुर?"
         : "Namaste and hello! 🙏 I'm <b>Prixna AI</b> — your friendly tech companion from Prixna IT Solution (Koteshwor, Kathmandu). Hope you are having a wonderful day! 😊\nHow can I help you today — whether it's business software, CCTV security, laptop/PC repair, or just a quick tech question?";
+    case "showcase":
+      try{
+        var _sm = window.PRIXNA_SHOWCASE ? window.PRIXNA_SHOWCASE.findByText(text) : [];
+        if(window.PRIXNA_LOG) window.PRIXNA_LOG("ai_recommend", "showcase:" + ((_sm && _sm[0] && _sm[0].id) || "list"));
+      }catch(e){ var _sm = []; }
+      return showcaseAnswer(ne, _sm);
+    case "demo":
+      var _smart = getSmartDemoContext(text);
+      if(_smart) return singleDemoSmartAnswer(_smart, ne);
+      return demoListAnswer(ne, findDemosByText(text));
     case "software":
+      var _smartSw = getSmartDemoContext(text);
+      if(_smartSw) return singleDemoSmartAnswer(_smartSw, ne);
+      var _dm = findDemosByText(text);
+      if(_dm && _dm.length) return demoListAnswer(ne, _dm);
       return ne
-        ? "💼 <b>हाम्रो सफ्टवेयर सोलुसन:</b>\n• Jigri ERP: पसल, होलसेल र मार्टका लागि भ्याट/नन-भ्याट बिलिङ + स्टक\n• रेस्टुरेन्ट POS: टेबल म्यानेजमेन्ट, KOT र बिलिङ\n• स्कुल तथा कलेज व्यवस्थापन प्रणाली\n• JigriTools: ३०+ निःशुल्क नेपाली अनलाइन टुलहरू (मिति, कर, Unicode)\n\nतपाईंको व्यवसाय कस्तो हो र के सुविधा चाहिएको हो? म उपयुक्त सिस्टम र निःशुल्क डेमो मिलाइदिन्छु।\n👉 <a href='"+LINKS.quote+"?service=Business%20Software%20/%20SaaS%20Demo'>निःशुल्क डेमो माग्नुहोस्</a>"
-        : "💼 <b>Software we do:</b>\n"+esc(productKB().split("\n").slice(0,7).join("\n"))+"\n\nTell me your business type (shop/restaurant/school/office?) and need (billing/stock/attendance/website?) — I'll recommend the right setup + free demo.\n👉 <a href='"+LINKS.quote+"?service=Business%20Software%20/%20SaaS%20Demo'>Request free demo</a>";
+        ? "💼 <b>हाम्रो सफ्टवेयर सोलुसन:</b>\n• Jigri ERP: पसल, होलसेल र मार्टका लागि भ्याट/नन-भ्याट बिलिङ + स्टक\n• रेस्टुरेन्ट POS: टेबल म्यानेजमेन्ट, KOT र बिलिङ\n• स्कुल तथा कलेज व्यवस्थापन प्रणाली\n• JigriTools: ३०+ निःशुल्क नेपाली अनलाइन टुलहरू (मिति, कर, Unicode)\n\n🎬 पहिले छोटो भिडियो हेर्नुहोस् — त्यसपछि मात्र निःशुल्क परामर्श + सब्सक्रिप्सन:\n👉 <a href='" + demoPageLink("") + "'><b>🎬 सबै सफ्टवेयर डेमो हेर्नुहोस्</b></a>\n👉 <a href='"+LINKS.quote+"?service=Business%20Software%20/%20SaaS%20Demo'>निःशुल्क डेमो माग्नुहोस्</a>\n\nतपाईंको व्यवसाय कस्तो हो? (पसल/रेस्टुरेन्ट/स्कुल/अफिस?) भन्नुहोस् — म ठ्याक्कै मिल्ने डेमो लिंक दिन्छु।"
+        : "💼 <b>Software we do:</b>\n"+esc(productKB().split("\n").slice(0,7).join("\n"))+"\n\n🎬 <b>Watch first, decide after:</b> 👉 <a href='" + demoPageLink("") + "'><b>🎬 Watch all software demos</b></a>\nTell me your business type (shop/restaurant/school/office?) and need (billing/stock/attendance/website?) — I'll send the exact demo link, then arrange free consultation + subscription.\n👉 <a href='"+LINKS.quote+"?service=Business%20Software%20/%20SaaS%20Demo'>Request free demo</a>";
     case "cctv":
       return ne
-        ? "🎥 <b>CCTV क्यामेरा तथा सेक्युरिटी:</b> क्यामेरा + DVR/NVR र प्रोफेसनल जडान सेवा।\n• पसल, घर वा अफिसका लागि २/४/८ क्यामेरा सेटअप\n• साइट भिजिट निःशुल्क → यकिन कोटेसन\n• १ वर्ष वारेन्टी र तुरुन्त मर्मत सपोर्ट\n\nकतिवटा क्यामेरा र कुन ठाउँमा चाहिएको हो? (जस्तै: <i>'४ क्यामेरा, कोटेश्वर पसल'</i>) भन्नुस्, म तुरुन्त बुकिङ मिलाइदिन्छु। 👉 <a href='cctv-security.html'>CCTV प्याकेजहरू हेर्नुहोस्</a>"
-        : "🎥 <b>CCTV & Security:</b> Cameras + DVR + professional installation across Kathmandu Valley.\n• Shop/office ke lagi 2/4/8-camera plan\n• Free site visit → exact quotation\n• Installation support included\n\nHow many rooms/floors to cover? And location? Reply e.g. <i>'4 camera, Koteshwor pasal'</i> — I'll start your booking. 👉 <a href='cctv-security.html'>Installation plans</a>";
+        ? "🎥 <b>CCTV क्यामेरा तथा सेक्युरिटी:</b> क्यामेरा + DVR/NVR र प्रोफेसनल जडान सेवा।\n• पसल, घर वा अफिसका लागि २/४/८ क्यामेरा सेटअप\n• साइट भिजिट निःशुल्क → यकिन कोटेसन\n• १ वर्ष वारेन्टी र तुरुन्त मर्मत सपोर्ट\n\nकतिवटा क्यामेरा र कुन ठाउँमा चाहिएको हो? (जस्तै: <i>'४ क्यामेरा, कोटेश्वर पसल'</i>) भन्नुस्, म तुरुन्त बुकिङ मिलाइदिन्छु। 👉 <a href='"+LINKS.cctv+"'>CCTV प्याकेजहरू हेर्नुहोस्</a>"
+        : "🎥 <b>CCTV & Security:</b> Cameras + DVR + professional installation across Kathmandu Valley.\n• Shop/office ke lagi 2/4/8-camera plan\n• Free site visit → exact quotation\n• Installation support included\n\nHow many rooms/floors to cover? And location? Reply e.g. <i>'4 camera, Koteshwor pasal'</i> — I'll start your booking. 👉 <a href='"+LINKS.cctv+"'>Installation plans</a>";
     case "attendance":
       return ne
-        ? "👆 <b>बायोमेट्रिक डिभाइस + जिग्री ई-हाजिरी:</b>\nफिंगरप्रिन्ट/फेस रिड गर्ने डिभाइस र मोबाइल एपबाट डिजिटल हाजिरी, बिदा र पेरोल व्यवस्थापन।\n• डिभाइस जडान र सफ्टवेयर सेटअप\n• स्टाफलाई पूर्ण तालिम समावेश\n\nतपाईंको संस्थामा कतिजना कर्मचारी हुनुहुन्छ? (जस्तै: <i>'२५ जना, स्कुल, ललितपुर'</i>) 👉 <a href='biometric-access.html'>डिभाइस विवरण</a>"
-        : "👆 <b>Biometric + Jigri eHajiri:</b> Fingerprint device with setup + digital attendance/leave, staff training included. Works together — device we install, software we configure.\n\nHow many staff? Reply e.g. <i>'25 staff, school, Lalitpur'</i> 👉 <a href='biometric-access.html'>Device options</a> | <a href='"+LINKS.quote+"?service=Attendance%20%26%20Payroll'>Early access</a>";
+        ? "👆 <b>बायोमेट्रिक डिभाइस + जिग्री ई-हाजिरी:</b>\nफिंगरप्रिन्ट/फेस रिड गर्ने डिभाइस र मोबाइल एपबाट डिजिटल हाजिरी, बिदा र पेरोल व्यवस्थापन।\n• डिभाइस जडान र सफ्टवेयर सेटअप\n• स्टाफलाई पूर्ण तालिम समावेश\n\nतपाईंको संस्थामा कतिजना कर्मचारी हुनुहुन्छ? (जस्तै: <i>'२५ जना, स्कुल, ललितपुर'</i>) 👉 <a href='"+LINKS.biometric+"'>डिभाइस विवरण</a>"
+        : "👆 <b>Biometric + Jigri eHajiri:</b> Fingerprint device with setup + digital attendance/leave, staff training included. Works together — device we install, software we configure.\n\nHow many staff? Reply e.g. <i>'25 staff, school, Lalitpur'</i> 👉 <a href='"+LINKS.biometric+"'>Device options</a> | <a href='"+LINKS.quote+"?service=Attendance%20%26%20Payroll'>Early access</a>";
     case "hardware":
+      try{
+        var _hm = window.PRIXNA_SHOWCASE ? window.PRIXNA_SHOWCASE.findByText(text) : [];
+        if(_hm && _hm.length){
+          if(window.PRIXNA_LOG) window.PRIXNA_LOG("ai_recommend", "showcase:" + _hm[0].id);
+          return showcaseAnswer(ne, _hm);
+        }
+      }catch(e){}
       return ne
-        ? "🖥️ <b>कम्प्युटर, ल्यापटप तथा एक्सेसरिज:</b>\n• ब्रान्डेड र एसेम्बल्ड डेस्कटप, ल्यापटप (Dell, HP, Lenovo, Acer)\n• प्रिन्टर, राउटर, युपिएस (UPS), केबल तथा नेटवर्क उपकरण\n• ५+ थान सामान खरिदमा होलसेल छुट\n\nतपाईंलाई कुन सामान र कति थान चाहिएको हो? म तुरुन्त स्टक र बेस्ट रेट दिन्छु। 👉 <a href='shop.html'>लाइभ क्याटलग</a> · ५+ पिसका लागि: <a href='bulk-quote.html'>📦 होलसेल कोटेसन</a>"
-        : "🖥️ <b>Computers & accessories — genuine, installed properly:</b>\n"+esc(productKB().split("\n").filter(function(l){return l.indexOf("In-stock")>-1;}).join("\n")||"Laptops, desktops, printers, routers, UPS in stock.")+"\n\nWhat do you need — laptop for office, printer, router/UPS? Tell quantity + use, I'll check best option. 👉 <a href='shop.html'>Live catalog</a> · Buying 5+ pcs? <a href='bulk-quote.html'>📦 Bulk pricing</a>";
+        ? "🖥️ <b>कम्प्युटर, ल्यापटप तथा एक्सेसरिज:</b>\n• ब्रान्डेड र एसेम्बल्ड डेस्कटप, ल्यापटप (Dell, HP, Lenovo, Acer)\n• प्रिन्टर, राउटर, युपिएस (UPS), केबल तथा नेटवर्क उपकरण\n• ५+ थान सामान खरिदमा होलसेल छुट\n\nतपाईंलाई कुन सामान र कति थान चाहिएको हो? म तुरुन्त स्टक र बेस्ट रेट दिन्छु। 👉 <a href='"+LINKS.shop+"'>लाइभ क्याटलग</a> · ५+ पिसका लागि: <a href='"+LINKS.bulk+"'>📦 होलसेल कोटेसन</a>"
+        : "🖥️ <b>Computers & accessories — genuine, installed properly:</b>\n"+esc(productKB().split("\n").filter(function(l){return l.indexOf("In-stock")>-1;}).join("\n")||"Laptops, desktops, printers, routers, UPS in stock.")+"\n\nWhat do you need — laptop for office, printer, router/UPS? Tell quantity + use, I'll check best option. 👉 <a href='"+LINKS.shop+"'>Live catalog</a> · Buying 5+ pcs? <a href='"+LINKS.bulk+"'>📦 Bulk pricing</a>";
     case "network":
       return ne
-        ? "🌐 <b>नेटवर्किङ तथा सर्भर सेटअप:</b>\nअफिस वाईफाई, LAN केबलिङ, राउटर कन्फिगरेसन र सर्भर व्यवस्थापन।\nतपाईंको अफिस कति तल्लाको छ र कतिवटा डिभाइस छन्? (जस्तै: <i>'३ तल्ला, २० जना कर्मचारी, बानेश्वर'</i>) भन्नुस्, हाम्रो टिमले साइट भिजिट गरेर सेटअप मिलाउनेछ। 👉 <a href='networking-servers.html'>नेटवर्क सोलुसन हेर्नुहोस्</a>"
-        : "🌐 <b>Networking & Servers:</b> Office Wi-Fi, LAN cabling, server setup — done right first time.\nTell me office size + floors + devices count (e.g. <i>'3 floor, 20 staff, Baneshwor'</i>) and I'll plan + book a site visit. 👉 <a href='networking-servers.html'>Network solutions</a>";
+        ? "🌐 <b>नेटवर्किङ तथा सर्भर सेटअप:</b>\nअफिस वाईफाई, LAN केबलिङ, राउटर कन्फिगरेसन र सर्भर व्यवस्थापन।\nतपाईंको अफिस कति तल्लाको छ र कतिवटा डिभाइस छन्? (जस्तै: <i>'३ तल्ला, २० जना कर्मचारी, बानेश्वर'</i>) भन्नुस्, हाम्रो टिमले साइट भिजिट गरेर सेटअप मिलाउनेछ। 👉 <a href='"+LINKS.networking+"'>नेटवर्क सोलुसन हेर्नुहोस्</a>"
+        : "🌐 <b>Networking & Servers:</b> Office Wi-Fi, LAN cabling, server setup — done right first time.\nTell me office size + floors + devices count (e.g. <i>'3 floor, 20 staff, Baneshwor'</i>) and I'll plan + book a site visit. 👉 <a href='"+LINKS.networking+"'>Network solutions</a>";
     case "marketing":
       return ne
-        ? "🚀 <b>डिजिटल मार्केटिङ तथा AI अटोमेसन:</b>\nग्राफिक डिजाइन, फेसबुक/इन्स्टाग्राम विज्ञापन, ह्वाट्सएप अटो-रिप्लाई, र ग्राहक फलो-अप अटोमेसन।\nतपाईंको मुख्य लक्ष्य के हो — धेरै ग्राहक ल्याउने, अनलाइन अर्डर बढाउने, वा अटोमेटिक च्याट राख्ने? 👉 <a href='digital-marketing-ai.html'>प्याकेजहरू हेर्नुहोस्</a>"
-        : "🚀 <b>Digital Marketing + AI Automation:</b> Practical marketing that brings enquiries — listings, content, WhatsApp auto-reply, lead follow-up automation.\nWhat is your goal — more walk-ins, more online orders, or automatic follow-up? 👉 <a href='digital-marketing-ai.html'>See plans</a>";
+        ? "🚀 <b>डिजिटल मार्केटिङ तथा AI अटोमेसन:</b>\nग्राफिक डिजाइन, फेसबुक/इन्स्टाग्राम विज्ञापन, ह्वाट्सएप अटो-रिप्लाई, र ग्राहक फलो-अप अटोमेसन।\nतपाईंको मुख्य लक्ष्य के हो — धेरै ग्राहक ल्याउने, अनलाइन अर्डर बढाउने, वा अटोमेटिक च्याट राख्ने? 👉 <a href='"+LINKS.marketing+"'>प्याकेजहरू हेर्नुहोस्</a>"
+        : "🚀 <b>Digital Marketing + AI Automation:</b> Practical marketing that brings enquiries — listings, content, WhatsApp auto-reply, lead follow-up automation.\nWhat is your goal — more walk-ins, more online orders, or automatic follow-up? 👉 <a href='"+LINKS.marketing+"'>See plans</a>";
     case "price":
       var excelMatches = searchExcelProducts(text);
       if(excelMatches && excelMatches.length){
-        return formatExcelResults(excelMatches, ne);
+        var wantsSpecs = matchAny(text, ["spec", "specs", "detail", "details", "विवरण", "फिचर्स", "विस्तृत विवरण", "full"]);
+        return formatExcelResults(excelMatches, ne, wantsSpecs);
       }
       if(excelCatalog && excelCatalog.items && excelCatalog.items.length){
-        return formatExcelResults(excelCatalog.items.slice(0, 4), ne);
+        return formatExcelResults(excelCatalog.items.slice(0, 4), ne, false);
       }
       return ne
-        ? "💰 <b>दररेट तथा कोटेसन:</b>\nसामानको यकिन मूल्य मोडल, ब्रान्ड र स्टक अनुसार निर्धारण हुन्छ। १ मिनेटमै दररेट पाउन:\n१. सामानको नाम र परिमाण भन्नुहोस् (जस्तै: <i>'TP-Link राउटर २ वटा'</i> वा <i>'CCTV ४ क्यामेरा'</i>)\n२. हामी तुरुन्त बेस्ट कोटेसन तयार गर्छौं\n३. हाम्रो टिमले फोन वा ह्वाट्सएपमा दररेट पक्का गरिदिनेछ\n\n👉 <a href='shop.html'>लाइभ मूल्य हेर्नुहोस्</a> | <a href='"+LINKS.quote+"'>कोटेसन माग्नुहोस्</a>"
-        : "💰 Exact price depends on model + stock (changes weekly). I never guess — here's how to get it in 1 min:\n1. Tell product name/qty (e.g. <i>'TP-Link router 2 pcs'</i>)\n2. I'll check our live list + create a quotation request\n3. Team confirms on call/WhatsApp\n\n👉 <a href='shop.html'>Browse live pricing</a> | <a href='"+LINKS.quote+"'>Get quote</a>\n\nWhat item + quantity do you need?";
+        ? "💰 <b>दररेट तथा कोटेसन:</b>\nसामानको यकिन मूल्य मोडल, ब्रान्ड र स्टक अनुसार निर्धारण हुन्छ। १ मिनेटमै दररेट पाउन:\n१. सामानको नाम र परिमाण भन्नुहोस् (जस्तै: <i>'TP-Link राउटर २ वटा'</i> वा <i>'CCTV ४ क्यामेरा'</i>)\n२. हामी तुरुन्त बेस्ट कोटेसन तयार गर्छौं\n३. हाम्रो टिमले फोन वा ह्वाट्सएपमा दररेट पक्का गरिदिनेछ\n\n👉 <a href='"+LINKS.shop+"'>लाइभ मूल्य हेर्नुहोस्</a> | <a href='"+LINKS.quote+"'>कोटेसन माग्नुहोस्</a>"
+        : "💰 Exact price depends on model + stock (changes weekly). I never guess — here's how to get it in 1 min:\n1. Tell product name/qty (e.g. <i>'TP-Link router 2 pcs'</i>)\n2. I'll check our live list + create a quotation request\n3. Team confirms on call/WhatsApp\n\n👉 <a href='"+LINKS.shop+"'>Browse live pricing</a> | <a href='"+LINKS.quote+"'>Get quote</a>\n\nWhat item + quantity do you need?";
+    case "catalog_browse":
+      if(excelCatalog && excelCatalog.items && excelCatalog.items.length){
+        if(ne){
+          var sampleList = excelCatalog.items.slice(0, 5).map(function(it){
+            return "• <b>" + esc(it.name) + "</b>: 💰 " + esc(it.price) + " (" + esc(it.stock || "उपलब्ध") + ")";
+          }).join("\n");
+          return "📦 <b>प्रिक्सना आईटी सोलुसनका लोकप्रिय उत्पादन तथा सेवाहरू:</b>\n" + sampleList + "\n\n👉 कुनै पनि सामानको मूल्य वा वारेन्टी बुझ्न नाम लेख्नुहोस् (जस्तै: <i>'Dell laptop'</i> वा <i>'CCTV'</i>), वा <a href='"+LINKS.shop+"'>लाइभ पसल हेर्नुहोस् ↗</a>";
+        } else {
+          var sampleListEn = excelCatalog.items.slice(0, 5).map(function(it){
+            return "• <b>" + esc(it.name) + "</b>: 💰 " + esc(it.price) + " (" + esc(it.stock || "Available") + ")";
+          }).join("\n");
+          return "📦 <b>Popular Products & Solutions at Prixna IT:</b>\n" + sampleListEn + "\n\n👉 Type any product name to check live price or stock (e.g. <i>'Dell laptop'</i> or <i>'CCTV camera'</i>), or browse our <a href='"+LINKS.shop+"'>Live Shop ↗</a>.";
+        }
+      }
+      return ne
+        ? "💼 <b>हाम्रा मुख्य सेवा तथा उत्पादनहरू:</b>\n• <b>सफ्टवेयर:</b> जिग्री ERP बिलिङ, रेस्टुरेन्ट POS, अकाउन्टिङ\n• <b>CCTV क्यामेरा:</b> Hikvision/Dahua एचडी क्यामेरा तथा जडान\n• <b>कम्प्युटर/ल्यापटप:</b> ब्रान्डेड बिक्री तथा चिप-लेभल मर्मत (SSD/RAM)\n• <b>हाजिरी डिभाइस:</b> बायोमेट्रिक फेस/फिंगरप्रिन्ट र eHajiri\n\nतपाईंलाई कुन सेवा वा सामानमा सहयोग चाहिन्छ हजुर?"
+        : "💼 <b>Our Core Technology Services & Products:</b>\n• <b>Software:</b> Jigri ERP billing, Restaurant POS, Accounting\n• <b>CCTV & Security:</b> Hikvision & Dahua HD packages with installation\n• <b>Computers & Laptops:</b> Sales & chip-level repairs (SSD/RAM speed boost)\n• <b>Biometrics:</b> Face/Fingerprint attendance with Jigri eHajiri\n\nWhich service or product can I help you with today?";
     case "info":
       return ne
         ? "📍 <b>प्रिक्सना आईटी सोलुसन प्रा. लि.</b><br>कोटेश्वर-३२, काठमाडौं<br>🕒 "+(isOpen()?"अहिले खुला छ ("+esc(HOURS)+")":"खुल्ने समय: "+esc(HOURS)+" (शनिबार बन्द)")+"<br>📞 <a href='"+PHONE_HREF+"'>"+esc(PHONE_DISP)+"</a> · ✉️ "+esc(EMAIL)+"<br><a href='https://maps.google.com/?cid=5858322710047837393' target='_blank' rel='noopener'>गुगल म्याप्समा हेर्नुहोस् ↗</a>"
@@ -494,18 +1240,39 @@ function answerFor(intent, text){
         : "🔍 To track your request, please share your <b>Ticket/Booking ID</b> (e.g. T-XXX or B-XXX) or the <b>phone number</b> you used. I'll look it up in our local inbox instantly. If it's with our technician team, I'll escalate for an update.";
     case "thanks":
       return ne
-        ? "धेरै धन्यवाद! 🙏 हाम्रो सेवा कस्तो लाग्यो? <a href='feedback.html'>⭐ यहाँ रेटिङ दिनुहोस्</a> — राम्रो लाग्यो भने गुगल रिभ्यु पनि दिनुहोला!<br>अरु केही सहयोग चाहिन्छ? <a href='"+PHONE_HREF+"'>"+esc(PHONE_DISP)+"</a>."
-        : "You're most welcome! 🙏 How was our service? <a href='feedback.html'>⭐ Rate us here</a> — loved it? A Google review helps our small team a lot!<br>Anything else — software, CCTV, repair, booking? <a href='"+PHONE_HREF+"'>"+esc(PHONE_DISP)+"</a>.";
+        ? "धेरै धन्यवाद! 🙏 हाम्रो सेवा कस्तो लाग्यो? <a href='"+LINKS.feedback+"'>⭐ यहाँ रेटिङ दिनुहोस्</a> — राम्रो लाग्यो भने गुगल रिभ्यु पनि दिनुहोला!<br>अरु केही सहयोग चाहिन्छ? <a href='"+PHONE_HREF+"'>"+esc(PHONE_DISP)+"</a>."
+        : "You're most welcome! 🙏 How was our service? <a href='"+LINKS.feedback+"'>⭐ Rate us here</a> — loved it? A Google review helps our small team a lot!<br>Anything else — software, CCTV, repair, booking? <a href='"+PHONE_HREF+"'>"+esc(PHONE_DISP)+"</a>.";
     case "feedback":
       return ne
-        ? "धन्यवाद 🙏 <a href='feedback.html'><b>⭐ १० सेकेन्डमा रेटिङ दिनुहोस्</b></a> — तपाईंको सल्लाहले हाम्रो सेवा अझ राम्रो बनाउन मद्दत पुग्छ।"
-        : "Thank you 🙏 <a href='feedback.html'><b>⭐ Rate your visit (10 sec)</b></a> — 4–5 star aayo bhane Google review ko link pani painchha. Low score? Supervisor ticket auto-banchha, no public ask.";
+        ? "धन्यवाद 🙏 <a href='"+LINKS.feedback+"'><b>⭐ १० सेकेन्डमा रेटिङ दिनुहोस्</b></a> — तपाईंको सल्लाहले हाम्रो सेवा अझ राम्रो बनाउन मद्दत पुग्छ।"
+        : "Thank you 🙏 <a href='"+LINKS.feedback+"'><b>⭐ Rate your visit (10 sec)</b></a> — 4–5 star aayo bhane Google review ko link pani painchha. Low score? Supervisor ticket auto-banchha, no public ask.";
     case "support":
       state.mode="ticket"; state.step=1; state.data={issue:text};
       return ne
         ? "🛠️ असुविधाका लागि क्षमाप्रार्थी छौं — तुरुन्त समाधान गरौं।\n<b>चरण १/३:</b> कुन डिभाइस वा सफ्टवेयरमा समस्या आएको हो? (जस्तै: ल्यापटप / बिलिङ सफ्टवेयर / CCTV / प्रिन्टर)\n\nतत्काल प्रयास गर्न सक्ने उपाय:\n१. डिभाइस र राउटर पुनः सुरु (Restart) गर्नुहोस्\n२. पावर र केबल चेक गर्नुहोस्\nकाम रोकिएको छ भने <b>urgent</b> लेख्नुहोस् — म तत्काल वरिष्ठ प्राविधिकलाई खबर गर्छु। 🚨"
         : "🛠️ Sorry for the trouble — let's fix it fast.\n<b>Step 1/3:</b> What device/software has the problem? (e.g. laptop / billing software / CCTV / printer)\n\nQuick first-aid you can try now:\n1. Restart device + router\n2. Check power/cables\n3. Update the app\nIf business is stopped, type <b>urgent</b> — I'll escalate immediately. 🚨";
     case "booking":
+      if(state && state.lastProduct){
+        var topProduct = state.lastProduct;
+        state.mode = "booking";
+        state.step = 1;
+        state.data = {
+          service: topProduct.name + " (" + topProduct.price + ")",
+          product: topProduct
+        };
+        return ne
+          ? "🎉 <b>" + esc(topProduct.name) + " को अर्डर तथा बुकिङ:</b>\n💰 <b>मूल्य:</b> " + esc(topProduct.price) + " (📦 " + esc(topProduct.stock) + (topProduct.warranty ? " · 🛡️ " + esc(topProduct.warranty) : "") + ")\n" + (topProduct.notes ? "🎁 <i>" + esc(topProduct.notes) + "</i>\n" : "") + "म तपाईंको लागि यो सामान तुरुन्तै सुरक्षित/बुक गरिदिन्छु हजुर!\n\n<b>चरण १/४:</b> तपाईंको <b>पूरा नाम</b> के हो हजुर?"
+          : "🎉 <b>Reserving " + esc(topProduct.name) + " for you!</b> 💻\n💰 <b>Price:</b> " + esc(topProduct.price) + " (📦 Status: " + esc(topProduct.stock) + (topProduct.warranty ? " · 🛡️ " + esc(topProduct.warranty) : "") + ")\n" + (topProduct.notes ? "🎁 <i>" + esc(topProduct.notes) + "</i>\n" : "") + "I'd be glad to secure this reservation and prepare your order!\n\n<b>Step 1/4:</b> What is your <b>full name</b>?";
+      }
+
+      var isAmbiguousOne = /\b(book\s*(one|this|it)|order\s*(one|this|it)|reserve\s*(one|this|it)|one\s*for\s*me)\b/i.test(text) ||
+        /(एउटा\s*बुक|एउटा\s*अर्डर|एउटा\s*चाहियो|यो\s*बुक|यो\s*अर्डर)/.test(text);
+      if(isAmbiguousOne){
+        return ne
+          ? "📦 <b>कुन सामान वा सेवा बुक गरिदिऊँ हजुर?</b> 😊\n\nतपाईंले कुन सामान (जस्तै: <i>Dell/HP ल्यापटप, Hikvision CCTV क्यामेरा, SSD/RAM अपग्रेड, वा जिग्री बिलिङ सफ्टवेयर</i>) अर्डर गर्न खोज्नुभएको हो? सामानको नाम भन्नुहोस्, म तुरुन्त बुकिङ सुरक्षित गरिदिन्छु!\n\n👉 वा प्राविधिक भिजिट समय मिलाउन <b>'visit'</b> भन्नुहोस्।"
+          : "📦 <b>Which item or service would you like to book?</b> 😊\n\nPlease let me know the product or service name (e.g. <i>Dell/HP Laptop, CCTV camera set, SSD upgrade, or Jigri ERP demo</i>) and I will start your reservation right away!\n\n👉 Or reply <b>'visit'</b> if you'd like to book an in-person technician appointment.";
+      }
+
       state.mode="booking"; state.step=1; state.data={};
       return ne
         ? "📅 <b>भिजिट बुकिङ:</b>\n<b>चरण १/५:</b> तपाईंको <b>पूरा नाम</b> के हो हजुर?\n\n"+esc(open)+"\n<small>हाम्रो सेवा: आइतबार–शुक्रबार, ९:३०–६:३० (शनिबार बन्द)।</small>"
@@ -520,8 +1287,8 @@ function answerFor(intent, text){
     case "bulk":
       state.mode="bulk"; state.step=1; state.data={};
       return ne
-        ? "📦 <b>होलसेल तथा डिलर दररेट:</b>\n<b>चरण १/३:</b> तपाईंको संस्था वा पसलको नाम के हो? (जस्तै: <i>'शर्मा ट्रेडर्स, काठमाडौं'</i>)\n\nपूरा फाराम भर्न चाहनुहुन्छ? 👉 <a href='bulk-quote.html'>होलसेल कोटेसन फाराम</a>"
-        : "📦 <b>Bulk & dealer pricing</b> — one itemised NPR quotation.\n<b>Step 1/3:</b> Business / org name + type? (e.g. <i>'Sharma Traders, retail shop'</i>)\n\nPrefer the full form? 👉 <a href='bulk-quote.html'>bulk-quote.html</a>";
+        ? "📦 <b>होलसेल तथा डिलर दररेट:</b>\n<b>चरण १/३:</b> तपाईंको संस्था वा पसलको नाम के हो? (जस्तै: <i>'शर्मा ट्रेडर्स, काठमाडौं'</i>)\n\nपूरा फाराम भर्न चाहनुहुन्छ? 👉 <a href='"+LINKS.bulk+"'>होलसेल कोटेसन फाराम</a>"
+        : "📦 <b>Bulk & dealer pricing</b> — one itemised NPR quotation.\n<b>Step 1/3:</b> Business / org name + type? (e.g. <i>'Sharma Traders, retail shop'</i>)\n\nPrefer the full form? 👉 <a href='"+LINKS.bulk+"'>bulk-quote.html</a>";
     default:
       return ne
         ? "मैले हजुरको कुरा सुनेँ हजुर 🙏 म प्रिक्सना आईटी सोलुसनको सबै सेवा (सफ्टवेयर, CCTV, ल्यापटप मर्मत, हार्डवेयर) वा सामान्य कुराकानीमा सघाउन सक्छु।\nहजुरलाई के विषयमा बुझ्न मन लागेको छ, निसंकोच बताउनुहोस् न — जस्तै: <i>'पसलको लागि बिलिङ सफ्टवेयर'</i>, <i>'ल्यापटप मर्मत खर्च'</i>, वा <i>'CCTV जडान'</i> लेख्न सक्नुहुन्छ। 😊"
@@ -540,14 +1307,188 @@ function handoff(reason, transcript){
 }
 
 /* ---------- multi-step flows ---------- */
+function isFlowCancel(text, currentMode, currentStep){
+  var t = String(text||"").trim();
+  if(!t) return false;
+  // If in step 3 (email), "no", "skip", "chaina", etc. means skipping email, NOT cancelling the whole booking
+  if(currentMode === "booking" && currentStep === 3){
+    if(/^(no|skip|none|na|n\/a|chaina|xaina|chhaina|छैन|नाइ|later|-)$/i.test(t) ||
+       /don'?t have|dont have|no email|mail chaina|email chaina/i.test(t)){
+      return false;
+    }
+  }
+
+  // Nepali cancellation words & phrases
+  if(/(पर्दैन|रद्द|छोडिदिनुस्|छोड्नुस्|क्यान्सिल|पछि\s*गर्छु|अहिले\s*पर्दैन|अर्डर\s*क्यान्सिल|बुकिङ\s*रद्द|अर्डर\s*रद्द|अहिले\s*हुँदैन)/.test(t)){
+    return true;
+  }
+  if(/\b(pardaina|chhoddinu|chhodnus|pachhi\s*garchhu|pachi\s*garchu|pachhi|cancel\s*gardinu|cancel\s*garnus)\b/i.test(t)){
+    return true;
+  }
+
+  // English cancellation keywords & phrases
+  if(/^(cancel|stop|leave|quit|abort|exit|never\s*mind|forget\s*it|not\s*now|no\s*thanks|no)$/i.test(t)){
+    return true;
+  }
+  return /\b(cancel|cancelled|cancelling|stop\s*it|stop\s*booking|never\s*mind|leave\s*it|leave\s*the\s*order|don'?t\s*want|not\s*now|no\s*need)\b/i.test(t);
+}
+
+function isMultiItemRequest(text){
+  var t = String(text||"").trim();
+  if(!t) return false;
+  return /\b(multi(\s*item(s)?)?|multiple(\s*item(s)?)?|bulk|both|more\s*than\s*one|add\s*(another|more)\s*item(s)?|more\s*items|2\s*items|3\s*items|several\s*items|different\s*items|together)\b/i.test(t) ||
+    /(एकभन्दा\s*बढी|धेरै\s*सामान|दुईटै|दुबै|थोक|थोकमा|अरु\s*पनि\s*थप्|२\s*वटा|३\s*वटा|सँगै|धेरै\s*अर्डर)/.test(t);
+}
+
+function isItemSwitchRequest(text){
+  var t = String(text||"").trim();
+  if(!t) return false;
+  return /\b(instead|another\s*product|another\s*item|different\s*item|different\s*product|switch\s*to|change\s*to|what\s*about|other\s*option(s)?|show\s*me\s*another)\b/i.test(t) ||
+    /(यसको\s*सट्टा|अर्को\s*सामान|अर्को\s*हेरौं|बदल्नुस्|अर्को\s*विकल्प|यसको\s*सट्टामा)/.test(t);
+}
+
 function handleFlow(text){
   var d = state.data;
   var ne = state.lang==="ne" || isNepali(text);
+  var cleanText = String(text||"").trim();
+
+  // 1. If currently waiting for cancellation confirmation:
+  if(state.confirmCancel){
+    // Did they CONFIRM cancellation?
+    var isConfirmedCancel = /^(yes|cancel|confirm|sure|ok|cancel\s*order|रद्द|हो|छोड्नुस्|छोडिदिनुस्|पर्दैन|१|1|1️⃣|हो\s*रद्द)$/i.test(cleanText) ||
+      /\b(yes\s*cancel|cancel\s*it|confirm\s*cancel|रद्द\s*गर्नुहोस्)\b/i.test(cleanText);
+
+    // Did they want to CONTINUE / KEEP the order?
+    var isContinueOrder = /^(continue|keep|no|don'?t\s*cancel|proceed|stay|जारी|होइन|राख्ने|जारी\s*राख्ने|पर्खनुस्|३|3|3️⃣)$/i.test(cleanText) ||
+      /\b(continue\s*(booking|order)?|don'?t\s*cancel|keep\s*booking|अर्डर\s*जारी)\b/i.test(cleanText);
+
+    // Did they want to CHANGE / SWITCH item?
+    var isChangeItem = /^(change|switch|another|another\s*item|अर्को|सट्टा|फरक|२|2|2️⃣)$/i.test(cleanText) ||
+      /\b(change\s*item|switch\s*item|अर्को\s*सामान)\b/i.test(cleanText);
+
+    if(isConfirmedCancel){
+      state.confirmCancel = false;
+      state.mode = "idle";
+      state.step = 0;
+      state.data = {};
+      return ne
+        ? "हुन्छ, समस्या छैन हजुर! अर्डर प्रक्रिया रोकेर पूर्ण रद्द (Cancel) गरिएको छ। 👍\n\nहजुरलाई अरु कुनै सामान हेर्न मन छ वा केही सोध्नु छ भने निसंकोच भन्नुहोस् है!"
+        : "No problem at all! Your reservation has been cancelled. 👍\n\nFeel free to explore our other products, or let me know whatever else you'd like to check out whenever you're ready!";
+    }
+
+    if(isContinueOrder){
+      state.confirmCancel = false;
+      state.step = d.savedStep || state.step || 1;
+      var curItem = d.service || (d.product ? d.product.name : "तपाईंको अर्डर");
+      var resumeHeader = ne
+        ? "धेरै राम्रो! हामी <b>" + esc(curItem) + "</b> को अर्डर प्रक्रियालाई निरन्तरता दिन्छौं। 👍\n\n"
+        : "Great! Let's continue with your order for <b>" + esc(curItem) + "</b>. 👍\n\n";
+
+      // Re-prompt the step they were on:
+      if(state.step === 1){
+        return resumeHeader + (ne ? "<b>चरण १:</b> तपाईंको <b>पूरा नाम</b> के हो हजुर?" : "<b>Step 1:</b> What is your <b>full name</b>?");
+      } else if(state.step === 2){
+        var fn = (d.name||"").split(" ")[0];
+        return resumeHeader + (ne ? "धन्यवाद, <b>"+esc(fn)+"</b> जी! <b>चरण २:</b> तपाईंको <b>सम्पर्क वा WhatsApp नम्बर</b>?" : "Thanks, <b>"+esc(fn)+"</b>! <b>Step 2:</b> Your <b>phone / WhatsApp number</b>?");
+      } else if(state.step === 3){
+        return resumeHeader + (ne ? "<b>चरण ३:</b> बिल र वारेन्टीका लागि तपाईंको <b>इमेल ठेगाना</b>? (नभए 'skip' लेख्न सक्नुहुन्छ)" : "<b>Step 3:</b> What is your <b>email address</b>? (Or type 'skip' if you don't have one)");
+      } else {
+        return resumeHeader + (ne ? "<b>डेलिभरी ठेगाना वा भिजिट समय</b> कुन उपयुक्त हुन्छ हजुर?" : "Preferred <b>delivery address or pickup time</b>?");
+      }
+    }
+
+    if(isChangeItem){
+      state.confirmCancel = false;
+      state.mode = "idle";
+      state.step = 0;
+      state.data = {};
+      return ne
+        ? "हुन्छ हजुर! अघिको अर्डर सुरक्षित राखिएन। हजुरलाई कुन सामान वा मोडल हेर्न मन छ? (जस्तै: Dell/HP ल्यापटप, CCTV क्यामेरा, SSD वा सफ्टवेयर?)"
+        : "Sure thing! I've set aside that reservation. Which product or model would you like to check out instead? (e.g. Dell/HP laptop, Hikvision CCTV, SSD, or Jigri ERP software?)";
+    }
+  }
+
+  // 2. Cancellation request detected:
+  if(isFlowCancel(cleanText, state.mode, state.step)){
+    // If active booking with product or customer details, ask confirmation first!
+    if(state.mode === "booking" && (d.service || d.name || state.step >= 1)){
+      state.confirmCancel = true;
+      d.savedStep = state.step;
+      var activeItem = d.service || (d.product ? d.product.name : (ne ? "यो सामान" : "this item"));
+      return ne
+        ? "⚠️ <b>अर्डर रद्द गर्ने पक्का हो?</b>\nनिश्चित हुनका लागि सोधेँ हजुर — के तपाईं <b>" + esc(activeItem) + "</b> को अर्डर <b>रद्द (Cancel)</b> नै गर्न चाहनुहुन्छ, वा <b>अर्को सामान हेर्ने</b> / <b>अर्डर जारी राख्ने</b>? 🙂\n\nछान्नुहोस्:\n1️⃣ <b>रद्द गर्ने</b> (Cancel Order)\n2️⃣ <b>अर्को सामान</b> (Switch Product)\n3️⃣ <b>जारी राख्ने</b> (Continue Order)"
+        : "⚠️ <b>Confirm Cancellation:</b>\nJust to be sure, would you like to <b>cancel</b> your reservation for <b>" + esc(activeItem) + "</b>, or would you prefer to <b>switch items</b> or <b>continue your order</b>? 🙂\n\nChoose an option:\n1️⃣ <b>Cancel Order</b>\n2️⃣ <b>Change Item</b>\n3️⃣ <b>Continue Order</b>";
+    }
+
+    state.mode = "idle";
+    state.step = 0;
+    state.data = {};
+    return ne
+      ? "हुन्छ, समस्या छैन हजुर! अर्डर/अनुरोध प्रक्रिया रोकेर रद्द (Cancel) गरिएको छ। 👍\n\nहजुरलाई अरु कुनै सामान हेर्न मन छ वा केही सोध्नु छ भने निसंकोच भन्नुहोस् है!"
+      : "No problem at all! I have cancelled that request for you. 👍\n\nFeel free to explore other products, or let me know whatever else you'd like to check out whenever you're ready!";
+  }
+
+  // 2. User asks for a human / representative midway
+  if(/^(human|agent|representative|call\s*me|phone|help|📞|प्रतिनिधि|मान्छे|सपोर्ट)$/i.test(cleanText) ||
+     /\b(talk\s*to\s*(a\s*)?human|speak\s*with\s*(a\s*)?person|talk\s*to\s*agent|प्रतिनिधिसँग\s*कुरा)\b/i.test(cleanText)){
+    state.mode = "idle";
+    state.step = 0;
+    state.data = {};
+    return handoff(ne ? "ग्राहकले प्रक्रियाको बीचमै प्रतिनिधिसँग कुरा गर्न चाहेको" : "User requested human during flow", cleanText);
+  }
+
+  // 3. User wants MULTI-ITEM or BULK ordering
+  if(isMultiItemRequest(cleanText)){
+    var prevCustomerName = d.name || "";
+    state.mode = "bulk";
+    state.step = 2; // Direct to item list & quantities collection
+    state.data = { biz: prevCustomerName || (ne ? "ग्राहक अर्डर" : "Customer Order") };
+    return ne
+      ? "📦 <b>एकभन्दा बढी वा धेरै सामान (Multi-Item / Bulk) अर्डर गर्न २ वटा सजिला उपाय छन्:</b>\n\n1️⃣ <b>यहाँ च्याटमै सामानहरूको सूची लेख्नुहोस्:</b>\nतपाईंलाई चाहिने सबै सामान र परिमाण (जस्तै: <i>'१ वटा HP ल्यापटप, ४ वटा CCTV क्यामेरा, र १ वटा प्रिन्टर'</i>) लेख्नुहोस् — हाम्रो टिमले एउटै संयुक्त बिल/कोटेसन तयार गर्नेछ।\n\n2️⃣ <b>होलसेल फाराम:</b> आधिकारिक VAT/PAN कोटेसनका लागि 👉 <a href='"+LINKS.bulk+"'><b>होलसेल कोटेसन फाराम (Bulk Quote)</b></a> मा सूची पठाउन सक्नुहुन्छ।\n\nअहिले तपाईंलाई कुन-कुन सामान आवश्यक परेको हो हजुर?"
+      : "📦 <b>Booking multiple items or bulk orders is very easy! You have two great options:</b>\n\n1️⃣ <b>List your items right here in chat:</b>\nSimply reply with the items & quantities you need (e.g. <i>'1x HP Laptop, 4x CCTV cameras, 1x printer'</i>) and our team will prepare a combined itemized invoice.\n\n2️⃣ <b>Wholesale Form:</b> For dealer/bulk quantities and official VAT/PAN quotations, submit your list on our 👉 <a href='"+LINKS.bulk+"'><b>Bulk Quotation Page</b></a>.\n\nWhat items and quantities would you like to order?";
+  }
+
+  // 4. User wants to SWITCH to another product or inquires about a product
+  var isSwitch = isItemSwitchRequest(cleanText);
+  var productMatches = searchExcelProducts(cleanText);
+  var looksLikeProductQuery = false;
+  if(productMatches && productMatches.length){
+    if(state.step >= 2){
+      // In phone, email, service, slot steps, typing a product query is definitely a product switch
+      looksLikeProductQuery = true;
+    } else {
+      // In step 1 (name): only switch if explicit switch keywords OR product terms are mentioned
+      var hasProductKeywords = matchAny(cleanText.toLowerCase(), [
+        "price", "cost", "kati", "rate", "camera", "cctv", "laptop", "software", "ssd", "monitor",
+        "ram", "dvr", "nvr", "hikvision", "dahua", "dell", "hp", "core", "intel", "ryzen",
+        "instead", "what about", "show me", "अर्को", "सट्टा", "क्यामेरा", "ल्यापटप", "कति"
+      ]);
+      looksLikeProductQuery = isSwitch || hasProductKeywords;
+    }
+  }
+
+  if(looksLikeProductQuery || isSwitch){
+    state.mode = "idle";
+    state.step = 0;
+    state.data = {};
+    if(productMatches && productMatches.length){
+      var switchedHeader = ne
+        ? "🔄 <b>सामान परिवर्तन गरियो!</b> अघिको अर्डर रोकेर नयाँ सामानको विवरण प्रस्तुत गरिएको छ:\n\n"
+        : "🔄 <b>Switched product!</b> Previous order set aside. Here is the info for your new selection:\n\n";
+      return switchedHeader + formatExcelResults(productMatches, ne, false);
+    } else {
+      return ne
+        ? "हुन्छ हजुर! अघिको अर्डर रोकेर राख्यौं। हजुरलाई कुन सामान वा मोडल हेर्न मन छ? (जस्तै: Dell/HP ल्यापटप, CCTV क्यामेरा, SSD वा सफ्टवेयर?)"
+        : "Sure thing! I've set aside that order. Which product or model would you like to check out instead? (e.g. Dell/HP laptop, Hikvision CCTV, SSD, or Jigri ERP software?)";
+    }
+  }
+
   if(state.mode==="booking"){
     // Step 1: Customer Name
     if(state.step===1){
       d.name=text.trim();
       if(d.name.length<2) return ne ? "कृपया आफ्नो पूरा नाम लेख्नुहोस् 🙂" : "Please share your full name 🙂";
+      try{ localStorage.setItem("prixna_customer_name", d.name); }catch(e){}
       state.step=2;
       var firstName=d.name.split(" ")[0];
       var totalSteps = d.service ? "४" : "५";
@@ -562,6 +1503,7 @@ function handleFlow(text){
       var ph=validPhone(text);
       if(!ph) return ne ? "नम्बर अधुरो देखियो — कृपया १० अङ्कको मोबाइल नम्बर दिनुहोस् (जस्तै: ९८XXXXXXXX)।" : "That number looks incomplete — please share a 10-digit mobile number (e.g. 98XXXXXXXX).";
       d.phone=ph;
+      try{ localStorage.setItem("prixna_customer_phone", ph); }catch(e){}
       state.step=3;
       var fn2=(d.name||"").split(" ")[0];
       var totalSteps2 = d.service ? "४" : "५";
@@ -592,7 +1534,10 @@ function handleFlow(text){
       }
 
       d.email = emMatch ? emMatch[0].toLowerCase() : "";
-      var emailAck = d.email ? (ne ? "✉️ इमेल <b>"+esc(d.email)+"</b> सुरक्षित गरियो!\n\n" : "✉️ Email <b>"+esc(d.email)+"</b> recorded!\n\n") : "";
+      try{ if(d.email) localStorage.setItem("prixna_customer_email", d.email); }catch(e){}
+      var emailAck = d.email
+        ? (ne ? "✉️ इमेल <b>"+esc(d.email)+"</b> सुरक्षित गरियो!\n\n" : "✉️ Email <b>"+esc(d.email)+"</b> recorded!\n\n")
+        : (ne ? "👍 समस्या छैन हजुर, इमेल बिना नै अघि बढौं — सम्पूर्ण विवरण फोन तथा WhatsApp मा पठाइनेछ।\n\n" : "👍 No problem, we'll proceed without an email — all updates will be confirmed via phone & WhatsApp.\n\n");
 
       // If service is already set (product reservation from catalog, e.g. Dell Inspiron laptop)
       if(d.service){
@@ -639,8 +1584,8 @@ function handleFlow(text){
         calHtml="<br>👉 <a href='"+gUrl+"' target='_blank' rel='noopener'>📅 Add to Google Calendar</a> · <a href='"+icsUrl+"' download='"+b.id+".ics'>⬇️ Apple/Outlook (.ics)</a>";
       }
       return ne
-        ? "✅ <b>बुकिङ सुरक्षित भयो!</b> ID <b>"+esc(b.id)+"</b>\n👤 <b>नाम:</b> "+esc(d.name)+"\n📞 <b>सम्पर्क:</b> "+esc(d.phone)+(d.email?"\n✉️ <b>इमेल:</b> "+esc(d.email):"")+"\n💼 <b>सेवा/सामान:</b> "+esc(d.service)+"\n🕒 <b>समय/ठेगाना:</b> "+esc(m)+"\n\nहाम्रो टिमले <b>"+esc(d.phone)+"</b> मा सम्पर्क गरी "+(d.email?"<b>"+esc(d.email)+"</b> मा विस्तृत विवरण तथा बिल पठाउनेछ।":"थप विवरण गराउनेछ।")+"\n\n👉 <a href='"+wa+"' target='_blank' rel='noopener'>💬 ह्वाट्सएपमा पक्का गर्नुहोस्</a> · <a href='"+PHONE_HREF+"'>📞 "+esc(PHONE_DISP)+"</a>"+calHtml+"<br>👉 <a href='feedback.html?ref="+esc(b.id)+"'>⭐ भिजिटपछि यहाँ रेटिङ दिनुहोस्</a>\nReference: "+esc(lead.id)
-        : "✅ <b>Booking Confirmed!</b> ID <b>"+esc(b.id)+"</b>\n👤 <b>Name:</b> "+esc(d.name)+"\n📞 <b>Contact:</b> "+esc(d.phone)+(d.email?"\n✉️ <b>Email:</b> "+esc(d.email):"")+"\n💼 <b>Item/Service:</b> "+esc(d.service)+"\n🕒 <b>Slot/Location:</b> "+esc(m)+"\n\nOur team will contact <b>"+esc(d.phone)+"</b>"+(d.email?" and email details & invoice to <b>"+esc(d.email)+"</b>.":" to confirm.")+"\n\n👉 <a href='"+wa+"' target='_blank' rel='noopener'>💬 Confirm on WhatsApp</a> · <a href='"+PHONE_HREF+"'>📞 "+esc(PHONE_DISP)+"</a>"+calHtml+"<br>👉 <a href='feedback.html?ref="+esc(b.id)+"'>⭐ After your visit, rate us</a>\nReference: "+esc(lead.id);
+        ? "✅ <b>बुकिङ सुरक्षित भयो!</b> ID <b>"+esc(b.id)+"</b>\n👤 <b>नाम:</b> "+esc(d.name)+"\n📞 <b>सम्पर्क:</b> "+esc(d.phone)+(d.email?"\n✉️ <b>इमेल:</b> "+esc(d.email):"")+"\n💼 <b>सेवा/सामान:</b> "+esc(d.service)+"\n🕒 <b>समय/ठेगाना:</b> "+esc(m)+"\n\nहाम्रो टिमले <b>"+esc(d.phone)+"</b> मा सम्पर्क गरी "+(d.email?"<b>"+esc(d.email)+"</b> मा विस्तृत विवरण तथा बिल पठाउनेछ।":"थप विवरण गराउनेछ।")+"\n\n👉 <a href='"+wa+"' target='_blank' rel='noopener'>💬 ह्वाट्सएपमा पक्का गर्नुहोस्</a> · <a href='"+PHONE_HREF+"'>📞 "+esc(PHONE_DISP)+"</a>"+calHtml+"<br>👉 <a href='"+LINKS.feedback+"?ref="+esc(b.id)+"'>⭐ भिजिटपछि यहाँ रेटिङ दिनुहोस्</a>\nReference: "+esc(lead.id)
+        : "✅ <b>Booking Confirmed!</b> ID <b>"+esc(b.id)+"</b>\n👤 <b>Name:</b> "+esc(d.name)+"\n📞 <b>Contact:</b> "+esc(d.phone)+(d.email?"\n✉️ <b>Email:</b> "+esc(d.email):"")+"\n💼 <b>Item/Service:</b> "+esc(d.service)+"\n🕒 <b>Slot/Location:</b> "+esc(m)+"\n\nOur team will contact <b>"+esc(d.phone)+"</b>"+(d.email?" and email details & invoice to <b>"+esc(d.email)+"</b>.":" to confirm.")+"\n\n👉 <a href='"+wa+"' target='_blank' rel='noopener'>💬 Confirm on WhatsApp</a> · <a href='"+PHONE_HREF+"'>📞 "+esc(PHONE_DISP)+"</a>"+calHtml+"<br>👉 <a href='"+LINKS.feedback+"?ref="+esc(b.id)+"'>⭐ After your visit, rate us</a>\nReference: "+esc(lead.id);
     }
   }
   if(state.mode==="ticket"){
@@ -676,13 +1621,14 @@ function handleFlow(text){
       var phb=validPhone(text); var nm=text.replace(/[\d\s\-\+]/g,"").trim().slice(0,60)||d.biz;
       if(!phb) return ne ? "१० अङ्कको फोन नम्बर आवश्यक छ — जस्तै: <i>'राम ९८१३७१४५८२'</i>।" : "Need a valid 10-digit phone — e.g. <i>'Ram 9813714582'</i>.";
       var lb=saveLead({name:nm,phone:phb,company:d.biz,service:"Bulk / Dealer Enquiry",message:"BULK LIST ("+d.biz+"):\n"+d.items,note:"bulk quote"});
+      saveBooking({name:nm,phone:phb,service:"Bulk Order ("+d.biz+")",items:d.items,location:d.biz,time:"Sun-Fri quotation"});
       try{ if(window.PRIXNA_NOTIFY) window.PRIXNA_NOTIFY.push("bulk",lb); }catch(e){}
       state.mode="idle"; state.step=0; state.data={};
       log("ai_bulk",lb.id);
       var wab=waLink("Hello Prixna! Bulk enquiry "+lb.id+" — "+nm+" ("+phb+") ["+d.biz+"] List: "+d.items.slice(0,250));
       return ne
-        ? "📦 <b>होलसेल अनुरोध दर्ता भयो!</b> ID <b>"+esc(lb.id)+"</b>\n🏢 "+esc(d.biz)+"\n📋 "+esc(d.items)+"\nहाम्रो टिमले आइत–शुक्र विस्तृत NPR कोटेसन पठाउनेछ।\n\n👉 <a href='"+wab+"' target='_blank' rel='noopener'>💬 ह्वाट्सएपमा पठाउनुहोस्</a> · <a href='bulk-quote.html'>पूरा फाराम हेर्नुहोस्</a>"
-        : "📦 <b>Bulk request received!</b> ID <b>"+esc(lb.id)+"</b>\n🏢 "+esc(d.biz)+"\n📋 "+esc(d.items)+"\nTeam replies Sun–Fri with one itemised NPR quotation.\n\n👉 <a href='"+wab+"' target='_blank' rel='noopener'>💬 Send list on WhatsApp</a> · <a href='bulk-quote.html'>Full bulk form</a>";
+        ? "📦 <b>होलसेल अनुरोध दर्ता भयो!</b> ID <b>"+esc(lb.id)+"</b>\n🏢 "+esc(d.biz)+"\n📋 "+esc(d.items)+"\nहाम्रो टिमले आइत–शुक्र विस्तृत NPR कोटेसन पठाउनेछ।\n\n👉 <a href='"+wab+"' target='_blank' rel='noopener'>💬 ह्वाट्सएपमा पठाउनुहोस्</a> · <a href='"+LINKS.bulk+"'>पूरा फाराम हेर्नुहोस्</a>"
+        : "📦 <b>Bulk request received!</b> ID <b>"+esc(lb.id)+"</b>\n🏢 "+esc(d.biz)+"\n📋 "+esc(d.items)+"\nTeam replies Sun–Fri with one itemised NPR quotation.\n\n👉 <a href='"+wab+"' target='_blank' rel='noopener'>💬 Send list on WhatsApp</a> · <a href='"+LINKS.bulk+"'>Full bulk form</a>";
     }
   }
   if(state.mode==="callback"){
@@ -721,6 +1667,27 @@ function renderMsg(who, html){
   div.innerHTML=html+"<div class='m-meta'>"+(who==="bot"?"Prixna AI · ":"You · ")+new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})+"</div>";
   msgsEl.appendChild(div); msgsEl.scrollTop=msgsEl.scrollHeight;
 }
+function clearChat(){
+  history = [];
+  try{ localStorage.removeItem(LS_MSGS); }catch(e){}
+  try{ localStorage.removeItem(LS_MEM); }catch(e){}
+  try{ localStorage.removeItem("prixna_customer_name"); }catch(e){}
+  try{ localStorage.removeItem("prixna_customer_phone"); }catch(e){}
+  try{ localStorage.removeItem("prixna_customer_email"); }catch(e){}
+  try{ localStorage.removeItem("prixna_customer_age"); }catch(e){}
+  clientMem = {};
+  if(msgsEl) msgsEl.innerHTML = "";
+  state.mode = "idle";
+  state.step = 0;
+  state.data = {};
+  state.confirmCancel = false;
+  state.lastProduct = null;
+  greeted = true;
+  var welcome = answerFor("greet", "hello");
+  pushMsg("bot", welcome);
+  setQuick(defaultQuick());
+  if(input) input.value = "";
+}
 function showTyping(){ var t=document.createElement("div"); t.className="prixna-ai-typing"; t.id="prixna-ai-typing"; t.textContent="Prixna AI is typing…"; msgsEl.appendChild(t); msgsEl.scrollTop=msgsEl.scrollHeight; }
 function hideTyping(){ var t=$("#prixna-ai-typing"); if(t) t.remove(); }
 function setQuick(list){
@@ -729,15 +1696,61 @@ function setQuick(list){
 }
 function defaultQuick(){
   if(state.lang === "ne"){
-    return ["💼 सफ्टवेयर","🎥 CCTV","🖥️ ल्यापटप","🛠️ मर्मत","📅 भिजिट बुक","📞 प्रतिनिधि"];
+    return ["🎬 डेमो हेर्ने","💼 सफ्टवेयर","🎥 CCTV","🖥️ ल्यापटप","📅 भिजिट बुक","📞 प्रतिनिधि"];
   }
-  return ["💼 Software","🎥 CCTV","🖥️ Laptop","🛠️ Repair","📅 Book visit","📞 Human"];
+  return ["🎬 Watch demo","💼 Software","🎥 CCTV","🖥️ Laptop","📅 Book visit","📞 Human"];
+}
+
+var LS_MEM = "prixna_ai_client_mem_v2";
+var clientMem = loadJSON(LS_MEM, {});
+function getClientMemory(q, lang){
+  if(state.mode !== "idle") return null;
+  // Always evaluate demo queries dynamically based on page and conversation context
+  if(/\b(demo|डेमो|video|भिडियो|watch|हेर्न)\b/i.test(q)) return null;
+  var k = (lang||"ne") + ":" + String(q||"").toLowerCase().replace(/[^\w\u0900-\u097F]/g," ").replace(/\s+/g," ").trim();
+  return clientMem[k] || null;
+}
+function setClientMemory(q, reply, lang){
+  if(state.mode !== "idle" || !q || !reply || reply.length < 15) return;
+  if(/\b(demo|डेमो|video|भिडियो)\b/i.test(q)) return;
+  // Safety guardrail: Never cache personal data
+  if(/\b9[78]\d{8}\b/.test(q+reply) || /@/.test(q+reply) || /\b[blt]\d{3,}\b/i.test(q+reply)) return;
+  var k = (lang||"ne") + ":" + String(q||"").toLowerCase().replace(/[^\w\u0900-\u097F]/g," ").replace(/\s+/g," ").trim();
+  clientMem[k] = reply;
+  var keys = Object.keys(clientMem);
+  if(keys.length > 60) delete clientMem[keys[0]];
+  saveJSON(LS_MEM, clientMem);
 }
 
 function botReply(userText){
   showTyping();
   var flow = handleFlow(userText);
-  if(flow){ setTimeout(function(){ hideTyping(); pushMsg("bot",flow); speak(stripTags(flow)); setQuick(defaultQuick()); },600); return; }
+  if(flow){
+    setTimeout(function(){
+      hideTyping();
+      pushMsg("bot",flow);
+      speak(stripTags(flow));
+      if(state.confirmCancel){
+        setQuick(state.lang==="ne" ? ["❌ रद्द गर्ने", "🔄 अर्को सामान", "➡️ जारी राख्ने"] : ["❌ Yes, Cancel", "🔄 Change Item", "➡️ Continue Order"]);
+      } else {
+        setQuick(defaultQuick());
+      }
+    },600);
+    return;
+  }
+
+  // Fast Client-Side Memory Check (0ms repeat response)
+  var memCached = getClientMemory(userText, state.lang);
+  if(memCached){
+    setTimeout(function(){
+      hideTyping();
+      pushMsg("bot", memCached);
+      speak(stripTags(memCached));
+      setQuick(defaultQuick());
+    }, 250);
+    return;
+  }
+
   var ne = isNepali(userText) || state.lang==="ne";
   var contextual = getContextualAnswer(userText, ne);
   var intent = detectIntent(userText);
@@ -747,10 +1760,12 @@ function botReply(userText){
   var convo = history.slice(-10).map(function(m){return {role:m.who==="bot"?"assistant":"user",content:stripTags(m.html)};});
   convo.push({role:"user",content:userText});
   backendReply(convo, function(bReply){
+    var chosen = bReply || local;
+    setClientMemory(userText, chosen, state.lang);
     setTimeout(function(){
       hideTyping();
-      pushMsg("bot", bReply || local);
-      speak(stripTags(bReply || local), function(){
+      pushMsg("bot", chosen);
+      speak(stripTags(chosen), function(){
         if(voiceChatActive && panel && panel.classList.contains("open")){
           var vBtn = $("#prixna-ai-voice");
           setTimeout(function(){
@@ -760,7 +1775,26 @@ function botReply(userText){
           }, 600);
         }
       });
-      if(intent==="general"||intent==="greet") setQuick(defaultQuick());
+      var isDemoMode = (intent==="demo" || intent==="software" || (chosen && (chosen.indexOf("demo-cta")>-1 || chosen.indexOf("डेमो थिएटर")>-1 || chosen.indexOf("Demo Theatre")>-1)));
+      if(isDemoMode){
+        var neDemos = ["🧾 Jigri ERP डेमो", "🍽️ रेस्टुरेन्ट POS", "📊 Jigri CRM डेमो", "👆 eHajiri डेमो", "🆓 निःशुल्क परामर्श"];
+        var enDemos = ["🧾 Jigri ERP Demo", "🍽️ Restaurant POS", "📊 Jigri CRM Demo", "👆 eHajiri Demo", "🆓 Free consultation"];
+        if(state.lastDiscussedDemo === "jigri-erp"){
+          neDemos = ["🍽️ रेस्टुरेन्ट POS", "📊 Jigri CRM डेमो", "👆 eHajiri डेमो", "🆓 निःशुल्क परामर्श", "💬 WhatsApp"];
+          enDemos = ["🍽️ Restaurant POS", "📊 Jigri CRM Demo", "👆 eHajiri Demo", "🆓 Free consultation", "💬 WhatsApp"];
+        } else if(state.lastDiscussedDemo === "restaurant-pos"){
+          neDemos = ["🧾 Jigri ERP डेमो", "📊 Jigri CRM डेमो", "👆 eHajiri डेमो", "🆓 निःशुल्क परामर्श", "💬 WhatsApp"];
+          enDemos = ["🧾 Jigri ERP Demo", "📊 Jigri CRM Demo", "👆 eHajiri Demo", "🆓 Free consultation", "💬 WhatsApp"];
+        } else if(state.lastDiscussedDemo === "jigri-crm"){
+          neDemos = ["🧾 Jigri ERP डेमो", "🍽️ रेस्टुरेन्ट POS", "👆 eHajiri डेमो", "🆓 निःशुल्क परामर्श", "💬 WhatsApp"];
+          enDemos = ["🧾 Jigri ERP Demo", "🍽️ Restaurant POS", "👆 eHajiri Demo", "🆓 Free consultation", "💬 WhatsApp"];
+        } else if(state.lastDiscussedDemo === "ehajiri-attendance"){
+          neDemos = ["🧾 Jigri ERP डेमो", "🍽️ रेस्टुरेन्ट POS", "📊 Jigri CRM डेमो", "🆓 निःशुल्क परामर्श", "💬 WhatsApp"];
+          enDemos = ["🧾 Jigri ERP Demo", "🍽️ Restaurant POS", "📊 Jigri CRM Demo", "🆓 Free consultation", "💬 WhatsApp"];
+        }
+        setQuick(state.lang==="ne" ? neDemos : enDemos);
+      } else if(intent==="general"||intent==="greet") setQuick(defaultQuick());
+      else if(chosen.indexOf("Which item or service")>-1 || chosen.indexOf("कुन सामान वा सेवा बुक")>-1) setQuick(state.lang==="ne"?["💻 Dell ल्यापटप","🎥 CCTV क्यामेरा","⚡ SSD अपग्रेड","💼 बिलिङ सफ्टवेयर"]:["💻 Dell Laptop","🎥 CCTV Camera","⚡ SSD Upgrade","💼 Billing Software"]);
       else if(intent==="support") setQuick(state.lang==="ne"?["अति जरुरी","ल्यापटप मर्मत","बिलिङ सफ्टवेयर समस्या","CCTV नचलेको","📞 प्रतिनिधि"]:["urgent","laptop repair","billing software issue","CCTV not working","📞 Human"]);
       else if(intent==="price") setQuick(state.lang==="ne"?["कोटेशन माग्नुहोस्","पसल लाइभ मूल्य","📞 प्रतिनिधि","📅 भिजिट बुक"]:["Request quote","Shop live pricing","📞 Human","📅 Book visit"]);
       else setQuick(state.lang==="ne"?["📅 भिजिट बुक","📞 प्रतिनिधि","💬 WhatsApp","ℹ️ समय र ठेगाना"]:["📅 Book visit","📞 Human","💬 WhatsApp","ℹ️ Hours & location"]);
@@ -802,6 +1836,10 @@ function detectMessageLang(t, currentLang){
 
 function sendUser(text){
   text=String(text||"").trim(); if(!text) return;
+  if(/^(clear|clear\s*chat|reset|reset\s*chat|new\s*chat|delete\s*history|delete\s*chat|नयाँ\s*च्याट|च्याट\s*मेटाउनुस्)$/i.test(text)){
+    clearChat();
+    return;
+  }
   state.lang = detectMessageLang(text, state.lang);
   try{ localStorage.setItem(LS_LANG, state.lang); }catch(e){}
   if(input){
@@ -1273,7 +2311,7 @@ function buildUI(){
   panel=document.createElement("div"); panel.id="prixna-ai-panel"; panel.setAttribute("role","dialog"); panel.setAttribute("aria-label","Prixna AI support center");
   panel.innerHTML=
     "<div class='prixna-ai-head'><div class='ph-av'>🤖</div><div><b>Prixna AI · Support Center</b><small><i></i><span id='prixna-ai-status'>Online — replies instantly</span></small></div>"+
-    "<div class='ph-x'><button id='prixna-ai-ne' title='Nepali / English'>ने/EN</button><button id='prixna-ai-close' aria-label='Close'>✕</button></div></div>"+
+    "<div class='ph-x'><button id='prixna-ai-clear' title='Clear chat / नयाँ च्याट' aria-label='Clear chat'>🧹</button><button id='prixna-ai-ne' title='Nepali / English'>ने/EN</button><button id='prixna-ai-close' aria-label='Close'>✕</button></div></div>"+
     "<div class='prixna-ai-actions'><a href='"+PHONE_HREF+"' data-track='ai_call'>📞 Call now</a>"+
     "<a id='prixna-ai-wa' href='"+waLink("Hello Prixna IT Solution! I need help.")+"' target='_blank' rel='noopener' data-track='ai_whatsapp'>💬 WhatsApp</a>"+
     "<button id='prixna-ai-book' type='button'>📅 Book</button><button id='prixna-ai-human' type='button'>🧑‍💼 Human</button></div>"+
@@ -1297,6 +2335,14 @@ function buildUI(){
   }
   fab.onclick=function(){ panel.classList.contains("open")?close():open(); };
   $("#prixna-ai-close").onclick=close;
+  var clrBtn = $("#prixna-ai-clear");
+  if(clrBtn){
+    clrBtn.onclick = function(){
+      var isNe = state.lang==="ne";
+      var confirmed = confirm(isNe ? "के तपाईं च्याट इतिहास मेटाउन निश्चित हुनुहुन्छ?" : "Clear all chat history?");
+      if(confirmed) clearChat();
+    };
+  }
   $("#prixna-ai-book").onclick=function(){ open(); sendUser("book"); };
   $("#prixna-ai-human").onclick=function(){ open(); sendUser("human support please"); };
   $("#prixna-ai-ne").onclick=function(){
@@ -1337,12 +2383,13 @@ if (document.readyState === "interactive" || document.readyState === "complete")
 window.PRIXNA_AI = {
   open:function(){ buildUI(); $("#prixna-ai-panel").classList.add("open"); },
   ask:function(t){ buildUI(); sendUser(t); },
+  clearHistory:function(){ clearChat(); },
   tickets:function(){ return loadJSON(LS_TICKETS,[]); },
   bookings:function(){ return loadJSON(LS_BOOKINGS,[]); },
   escalate:function(reason){ pushMsg("bot", handoff(reason||"manual", "staff escalation")); },
   _internal:{
     getState:function(){ return state; },
-    resetState:function(lang){ state.mode="idle"; state.step=0; state.data={}; if(lang) state.lang=lang; },
+    resetState:function(lang){ state.mode="idle"; state.step=0; state.data={}; state.confirmCancel=false; if(lang) state.lang=lang; },
     handleFlow:handleFlow,
     answerFor:answerFor,
     getContextualAnswer:getContextualAnswer

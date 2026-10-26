@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout & Payment | Prixna IT Solution</title>
+<meta name="description" content="Complete your hardware order or software subscription. Pay via the shown options, submit your payment reference, and staff verifies before activation.">
+<meta name="theme-color" content="#0A1A38">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script>try{if(localStorage.getItem("prixna_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header id="site-header"></header>
+<main id="main">
+<section class="page-hero"><div class="container">
+<p class="crumb"><a href="index.html">Home</a> / Checkout</p>
+<h1>Checkout</h1>
+<p id="co-sub">Review your order, pay using one of the options below, then submit your payment reference. <b>Staff verifies every payment before activation</b> — nothing is auto-activated.</p>
+</div></section>
+<section class="section"><div class="container">
+<div class="grid g2" style="align-items:start">
+<div>
+<div class="card" id="co-summary"><b>Order summary</b><div id="co-items" style="margin-top:10px"></div></div>
+<div class="card" style="margin-top:14px"><b>💳 How to pay</b>
+<div id="co-methods" style="margin-top:10px"></div>
+<p class="small muted" style="margin-top:10px">Pay the exact total, keep your transaction ID / screenshot remark. Then fill the claim form — our team verifies Sun–Fri, 9:30 AM – 6:30 PM.</p>
+</div>
+</div>
+<div>
+<div class="form-card">
+<h3 style="margin-top:0">Submit payment claim</h3>
+<p class="muted small">We activate only after staff verification. You receive confirmation on phone/WhatsApp.</p>
+<form id="co-form" novalidate>
+<div class="f-grid">
+<div class="f-item"><label class="flab req" for="co-name">Full name</label><input class="inp" id="co-name" name="name" autocomplete="name" placeholder="Your name"><div class="ferr">Please enter your name.</div></div>
+<div class="f-item"><label class="flab req" for="co-phone">Phone / WhatsApp</label><input class="inp" id="co-phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="98XXXXXXXX"><div class="ferr">Please enter a valid phone number.</div></div>
+<div class="f-item"><label class="flab" for="co-email">Email (optional)</label><input class="inp" id="co-email" name="email" inputmode="email" placeholder="you@company.com"></div>
+<div class="f-item"><label class="flab" for="co-loc">Location</label><input class="inp" id="co-loc" name="location" placeholder="e.g. Koteshwor, Kathmandu"></div>
+<div class="f-item"><label class="flab req" for="co-method">Payment method used</label><select class="inp" id="co-method" name="method"></select></div>
+<div class="f-item"><label class="flab req" for="co-txn">Transaction reference</label><input class="inp" id="co-txn" name="txn" placeholder="e.g. eSewa TXN id / bank remarks"><div class="ferr">Transaction reference is required.</div></div>
+<div class="f-item f-full"><label class="flab" for="co-note">Note (optional)</label><textarea class="inp" id="co-note" name="note" placeholder="Anything staff should know…"></textarea></div>
+<label class="consent f-full"><input type="checkbox" id="co-consent" checked> <span>I agree to be contacted about this order by call, SMS, email or WhatsApp, including verification and onboarding updates.</span></label>
+<div class="f-full"><button class="btn btn-primary btn-block" type="submit">Submit payment claim →</button></div>
+</div>
+</form>
+<div class="form-ok" id="co-ok"></div>
+<div class="form-err" id="co-err"></div>
+</div>
+</div>
+</div>
+</div></section>
+</main>
+<footer id="site-footer"></footer>
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/prixna-site-settings.js"></script>
+<script src="js/prixna-plans.js"></script>
+<script src="js/prixna-demos.js"></script>
+<script src="js/prixna-orders.js"></script>
+<script src="js/main.js"></script>
+<script src="js/leads.js"></script>
+<script>
+(function(){
+  "use strict";
+  function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+  function qp(n){try{return new URLSearchParams(location.search).get(n)||"";}catch(e){return"";}}
+  function npr(n){try{return "Rs. "+Math.round(+n||0).toLocaleString("en-IN");}catch(e){return "Rs. "+n;}}
+  function validPhone(p){var d=String(p||"").replace(/\D/g,"");return d.length>=10&&d.length<=14?d:null;}
+
+  var orderId = qp("order"), planId = qp("plan"), product = qp("product"), funnel = qp("funnel") || "";
+  var order = null;
+
+  function boot(){
+    var S = window.PRIXNA_SETTINGS.getAll();
+    // methods from settings only
+    var methods = window.PRIXNA_SETTINGS.paymentMethods();
+    document.getElementById("co-method").innerHTML = methods.map(function(m){
+      return '<option value="'+esc(m.id)+'">'+esc(m.label)+'</option>';
+    }).join("");
+    // payment details block (only configured details shown)
+    var p = S.payment || {}, pay = "";
+    if(p.esewaId) pay += "<p class='small'><b>eSewa:</b> "+esc(p.esewaId)+"</p>";
+    if(p.bankAccount) pay += "<p class='small'><b>Bank:</b> "+esc(p.bankName||"")+" · A/C "+esc(p.bankAccount)+" ("+esc(p.bankHolder||"")+")</p>";
+    if(p.esewaId || p.bankAccount) pay += "<p class='small muted'>Advance to start work: "+esc(p.advancePercent!=null?p.advancePercent:30)+"% · Terms: "+esc(p.terms||"")+"</p>";
+    else pay += "<p class='small'>For current payment details (eSewa / bank / QR), call <b>"+esc(S.phoneDisplay)+"</b> or <a href='https://wa.me/"+esc(String(S.whatsappNumber).replace(/\D/g,""))+"'>WhatsApp us</a> — details are set by staff, never guessed.</p>";
+    document.getElementById("co-methods").innerHTML = pay;
+
+    if(orderId && window.PRIXNA_ORDERS){
+      order = window.PRIXNA_ORDERS.get(orderId);
+    }
+    if(!order && (planId || product) && window.PRIXNA_ORDERS){
+      // create a draft order so abandonment + claim tracking works (idempotent per session+plan)
+      var key = null;
+      try{
+        key = sessionStorage.getItem("prixna_checkout_key") || "";
+        if(!key){ key = "K-"+Date.now().toString(36).toUpperCase(); sessionStorage.setItem("prixna_checkout_key", key); }
+      }catch(e){ key = "K-"+Date.now().toString(36).toUpperCase(); }
+      var plan = null;
+      try{ plan = window.PRIXNA_PLANS ? window.PRIXNA_PLANS.get(planId) : null; }catch(e){}
+      var res = window.PRIXNA_ORDERS.create({
+        idemKey: key + ":" + (planId || product),
+        funnel: funnel || (plan ? "software" : "hardware"),
+        planId: planId, product: product || (plan ? plan.name : ""),
+        items: [{ desc: (plan ? plan.name : product) || "Order", qty: 1, price: plan && +plan.priceNPR > 0 ? +plan.priceNPR : 0 }],
+        amount: plan && +plan.priceNPR > 0 ? +plan.priceNPR : 0,
+        source: "checkout.html"
+      });
+      order = res.order;
+      try{ history.replaceState(null, "", "checkout.html?order=" + encodeURIComponent(order.id)); }catch(e){}
+    }
+    paint();
+    bind();
+  }
+
+  function paint(){
+    var box = document.getElementById("co-items");
+    if(!order){ box.innerHTML = '<p class="small muted">No order yet. <a href="shop.html">Browse hardware</a>, <a href="demo.html">watch a software demo</a>, or ask the <b>Prixna AI</b> assistant to build your order.</p>'; return; }
+    var rows = (order.items||[]).map(function(r){
+      return "<div class='small' style='margin:6px 0'>• "+esc(r.desc||"Item")+" × "+esc(r.qty||1)+(r.price?" — "+npr((+r.qty||1)*(+r.price||0)):"")+"</div>";
+    }).join("");
+    var statusNote = order.verified
+      ? "<p class='small' style='color:var(--green-600)'><b>✅ Payment verified.</b> Onboarding/confirmation follows — check phone/WhatsApp.</p>"
+      : order.payment
+      ? "<p class='small'><b>Payment claim received</b> ("+esc(order.payment.method)+" · "+esc(order.payment.txnRef)+"). Awaiting staff verification — not activated yet.</p>"
+      : "<p class='small muted'>Status: "+esc(order.status)+". Submit your payment claim after paying.</p>";
+    box.innerHTML = "<p class='small muted'>Order <b>"+esc(order.id)+"</b> · "+esc(order.funnel)+"</p>" + rows +
+      "<p class='small' style='margin-top:8px'>Total: <b>"+(order.amount?npr(order.amount):"per quotation (NPR)")+"</b></p>" + statusNote;
+    if(order.name) document.getElementById("co-name").value = order.name;
+    if(order.phone) document.getElementById("co-phone").value = order.phone;
+  }
+
+  function bind(){
+    document.getElementById("co-form").addEventListener("submit", function(e){
+      e.preventDefault();
+      var err = document.getElementById("co-err"), ok = document.getElementById("co-ok");
+      err.classList.remove("show"); ok.classList.remove("show");
+      var name = document.getElementById("co-name").value.trim();
+      var phone = validPhone(document.getElementById("co-phone").value);
+      var txn = document.getElementById("co-txn").value.trim();
+      var method = document.getElementById("co-method").value;
+      var consent = document.getElementById("co-consent").checked;
+      if(name.length < 2){ err.textContent = "⚠️ Please enter your name."; err.classList.add("show"); return; }
+      if(!phone){ err.textContent = "⚠️ Please enter a valid 10-digit phone number."; err.classList.add("show"); return; }
+      if(!txn){ err.textContent = "⚠️ Transaction reference is required for verification."; err.classList.add("show"); return; }
+      if(!consent){ err.textContent = "⚠️ Please keep the consent checkbox ticked so we can verify and onboard your order."; err.classList.add("show"); return; }
+      if(!order){
+        // walk-in claim without prior draft: create order first (same submit, idempotent-ish)
+        var res = window.PRIXNA_ORDERS.create({ funnel: "hardware", product: "Walk-in payment claim", items: [{desc:"Payment claim",qty:1,price:0}], amount: 0, name: name, phone: phone, consent: true, source: "checkout.html" });
+        order = res.order;
+      } else {
+        // attach contact to order
+        order.name = name; order.phone = phone; order.consent = true;
+      }
+      var email = document.getElementById("co-email").value.trim();
+      var loc = document.getElementById("co-loc").value.trim();
+      var note = document.getElementById("co-note").value.trim();
+      order.email = email; order.location = loc; if(note) order.note = note;
+      var claim = window.PRIXNA_ORDERS.claimPayment(order.id, { method: method, txnRef: txn, amount: order.amount });
+      if(claim.error){ err.textContent = "⚠️ " + claim.error; err.classList.add("show"); return; }
+      order = claim.order;
+      try{ if(window.PRIXNA_LOG) window.PRIXNA_LOG("checkout_claim", order.id); }catch(x){}
+      try{
+        var S = window.PRIXNA_SETTINGS.getAll();
+        var wa = "https://wa.me/"+String(S.staffWhatsApp||S.whatsappNumber).replace(/\D/g,"")+"?text="+encodeURIComponent("Hello Prixna! Payment claim "+order.id+" — "+name+" ("+phone+") via "+method+", ref "+txn+". Please verify.");
+      }catch(x){ var wa = ""; }
+      ok.innerHTML = "<b>✅ Claim received — "+esc(order.id)+".</b><br>We verify every payment on working hours before activation. Keep your reference <b>"+esc(txn)+"</b>." +
+        (wa ? '<div class="btn-row" style="margin-top:12px"><a class="btn btn-whatsapp btn-sm" target="_blank" rel="noopener" href="'+wa+'">💬 Notify staff on WhatsApp</a></div>' : "");
+      ok.classList.add("show");
+      paint();
+      if(ok.scrollIntoView) try{ok.scrollIntoView({behavior:"smooth",block:"center"});}catch(x){}
+    });
+  }
+
+  function ready(fn){
+    var tries = 0;
+    (function tick(){
+      if((window.PRIXNA_ORDERS && window.PRIXNA_SETTINGS && window.PRIXNA_PLANS) || tries > 40) fn();
+      else { tries++; setTimeout(tick, 150); }
+    })();
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ ready(boot); });
+  else ready(boot);
+})();
+</script>
+</body>
+</html>

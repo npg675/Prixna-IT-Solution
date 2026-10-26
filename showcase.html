@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Showcase — Hardware & Software | Prixna IT Solution</title>
+<meta name="description" content="Browse our current hardware and software showcase. Watch software demos, then consult, order and pay with staff verification.">
+<meta name="theme-color" content="#0A1A38">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script>try{if(localStorage.getItem("prixna_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header id="site-header"></header>
+<main id="main">
+<section class="page-hero"><div class="container">
+<p class="crumb"><a href="index.html">Home</a> / Showcase</p>
+<h1>New showcase</h1>
+<p>Current hardware & software picks, added by our team. Software → watch demo first. Hardware → order, pay, staff verifies.</p>
+<div class="btn-row" id="show-filters">
+<button class="btn btn-primary btn-sm" data-f="all" type="button">All</button>
+<button class="btn btn-outline btn-sm" data-f="software" type="button" style="color:#fff;border-color:rgba(255,255,255,.4)">💼 Software</button>
+<button class="btn btn-outline btn-sm" data-f="hardware" type="button" style="color:#fff;border-color:rgba(255,255,255,.4)">📦 Hardware</button>
+</div>
+</div></section>
+<section class="section"><div class="container">
+<div id="show-detail"></div>
+<h2>Featured</h2>
+<div class="grid g3" style="margin-top:18px" data-showcase-mount data-featured="1"></div>
+<h2 style="margin-top:40px" id="show-all-h">All items</h2>
+<div class="grid g3" style="margin-top:18px" id="show-all"></div>
+</div></section>
+</main>
+<footer id="site-footer"></footer>
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/prixna-site-settings.js"></script>
+<script src="js/prixna-plans.js"></script>
+<script src="js/prixna-demos.js"></script>
+<script src="js/prixna-showcase.js"></script>
+<script src="js/main.js"></script>
+<script src="js/leads.js"></script>
+<script>
+(function(){
+  "use strict";
+  function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+  function qp(n){try{return new URLSearchParams(location.search).get(n)||"";}catch(e){return"";}}
+  function paintFilter(f){
+    var all = window.PRIXNA_SHOWCASE.items();
+    var list = f === "all" ? all : all.filter(function(x){return x.type===f;});
+    document.getElementById("show-all").innerHTML = list.length
+      ? list.map(function(x){
+          var badge = x.type==="software"?"💼 SOFTWARE":"📦 HARDWARE";
+          var cta = (x.type==="software"&&x.demoId)
+            ? '<a class="btn btn-primary btn-sm" href="demo.html?product='+esc(x.demoId)+'">🎬 Watch Demo</a>'
+            : '<a class="btn btn-primary btn-sm" href="checkout.html?funnel=hardware&product='+encodeURIComponent(x.name)+'">🛒 Order</a>';
+          return '<article class="card prod-card" style="display:flex;flex-direction:column"><span class="chip" style="align-self:flex-start">'+badge+'</span>'
+            + '<div style="font-size:2.4rem;margin:10px 0">'+esc(x.icon||"📦")+'</div><h3>'+esc(x.name)+'</h3>'
+            + '<p class="small muted">'+esc(x.tagline||"")+'</p>'
+            + '<p><b>'+esc(window.PRIXNA_SHOWCASE.priceLabel(x))+'</b></p>'
+            + ((x.features||[]).length?'<ul>'+x.features.map(function(f){return "<li>"+esc(f)+"</li>";}).join("")+"</ul>":"")
+            + '<div class="btn-row" style="margin-top:auto">'+cta+'<a class="btn btn-outline btn-sm" href="showcase.html?item='+esc(x.id)+'">Details</a></div></article>';
+        }).join("")
+      : '<div class="placeholder">Nothing in this group yet.</div>';
+    document.getElementById("show-all-h").textContent = f === "all" ? "All items" : f === "software" ? "💼 Software" : "📦 Hardware";
+    document.querySelectorAll("#show-filters .btn").forEach(function(b){
+      var on = b.getAttribute("data-f") === f;
+      b.className = "btn btn-sm " + (on ? "btn-primary" : "btn-outline");
+      if(!on){ b.style.color = "#fff"; b.style.borderColor = "rgba(255,255,255,.4)"; } else { b.style.color=""; b.style.borderColor=""; }
+    });
+  }
+  function paintDetail(){
+    var id = qp("item"), box = document.getElementById("show-detail");
+    if(!id || !window.PRIXNA_SHOWCASE){ box.innerHTML = ""; return; }
+    var x = window.PRIXNA_SHOWCASE.get(id);
+    if(!x){ box.innerHTML = ""; return; }
+    var demoBtn = (x.type==="software"&&x.demoId)?'<a class="btn btn-primary" href="demo.html?product='+esc(x.demoId)+'">🎬 Watch Demo</a>':"";
+    box.innerHTML = '<div class="card" style="margin-bottom:26px"><div style="font-size:3rem">'+esc(x.icon||"📦")+'</div>'
+      + "<h2>"+esc(x.name)+"</h2><p class='muted'>"+esc(x.tagline||"")+'</p>'
+      + "<p><b>"+esc(window.PRIXNA_SHOWCASE.priceLabel(x))+"</b> · "+esc(x.category||"")+" · "+esc(x.stock||"")+"</p>"
+      + ((x.features||[]).length?"<ul>"+x.features.map(function(f){return "<li>✓ "+esc(f)+"</li>";}).join("")+"</ul>":"")
+      + '<div class="btn-row">'+demoBtn+'<a class="btn btn-outline" href="checkout.html?funnel='+esc(x.type==="software"?"software":"hardware")+'&product='+encodeURIComponent(x.name)+'">Continue →</a></div></div>';
+    try{ if(window.PRIXNA_LOG) window.PRIXNA_LOG("showcase_view", x.id); }catch(e){}
+  }
+  function boot(){
+    paintFilter("all"); paintDetail();
+    document.querySelectorAll("#show-filters .btn").forEach(function(b){
+      b.onclick = function(){ paintFilter(b.getAttribute("data-f")); };
+    });
+  }
+  function ready(fn){ var t=0; (function tick(){ if(window.PRIXNA_SHOWCASE && window.PRIXNA_SHOWCASE.items().length>=0 && (window.PRIXNA_SHOWCASE.data().items||[]).length || t>40) fn(); else { t++; setTimeout(tick,150);} })(); }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", function(){ ready(boot); });
+  else ready(boot);
+})();
+</script>
+</body>
+</html>

@@ -7,36 +7,69 @@ export * from "./ai-types";
 const CONFIG_FILE_PATH = path.join(process.cwd(), "data", "ai-config.json");
 
 export function getAIConfig(): AIConfig {
+  let fileData: Partial<AIConfig> = {};
   try {
     if (fs.existsSync(CONFIG_FILE_PATH)) {
       const raw = fs.readFileSync(CONFIG_FILE_PATH, "utf-8");
-      const data = JSON.parse(raw);
-      return {
-        ...DEFAULT_AI_CONFIG,
-        ...data,
-      };
+      fileData = JSON.parse(raw);
     }
   } catch (err) {
     console.error("[ai-config] Failed to read config file:", err);
   }
 
-  // Fallback to environment variables if present
-  const envProvider = (process.env.AI_PROVIDER as AIProvider) || "local";
-  const envKey =
-    process.env.OPENAI_API_KEY ||
-    process.env.GEMINI_API_KEY ||
-    process.env.GROQ_API_KEY ||
-    "";
-  const envModel =
-    process.env.AI_MODEL || (envProvider === "gemini" ? "gemini-1.5-flash" : "gpt-4o-mini");
+  // Detect environment variables
+  const envGroq = (process.env.GROQ_API_KEY || "").trim();
+  const envOpenAI = (process.env.OPENAI_API_KEY || "").trim();
+  const envGemini = (process.env.GEMINI_API_KEY || "").trim();
+  const envKey = (process.env.AI_API_KEY || envGroq || envOpenAI || envGemini || "").trim();
+
+  let envProvider: AIProvider = (process.env.AI_PROVIDER as AIProvider) || "local";
+  if (envProvider === "local") {
+    if (envGroq) envProvider = "groq";
+    else if (envOpenAI) envProvider = "openai";
+    else if (envGemini) envProvider = "gemini";
+  }
+
+  const effectiveProvider: AIProvider =
+    fileData.provider && fileData.provider !== "local"
+      ? fileData.provider
+      : (envKey ? envProvider : (fileData.provider || "local"));
+
+  // Effective API key from file or environment
+  let effectiveKey = (fileData.apiKey || "").trim();
+  if (!effectiveKey) {
+    if (effectiveProvider === "groq") effectiveKey = envGroq || envKey;
+    else if (effectiveProvider === "openai") effectiveKey = envOpenAI || envKey;
+    else if (effectiveProvider === "gemini") effectiveKey = envGemini || envKey;
+    else effectiveKey = envKey;
+  }
+
+  // Model selection
+  const defaultModel =
+    effectiveProvider === "groq"
+      ? "llama-3.3-70b-versatile"
+      : effectiveProvider === "gemini"
+      ? "gemini-1.5-flash"
+      : "gpt-4o-mini";
+
+  const effectiveModel =
+    fileData.model && fileData.model !== "builtin-rules"
+      ? fileData.model
+      : process.env.AI_MODEL || defaultModel;
+
+  const effectiveEnabled =
+    fileData.enabled !== undefined
+      ? Boolean(fileData.enabled && effectiveKey)
+      : Boolean(effectiveKey && effectiveProvider !== "local");
 
   return {
     ...DEFAULT_AI_CONFIG,
-    enabled: Boolean(envKey && envProvider !== "local"),
-    provider: envProvider,
-    apiKey: envKey,
-    model: envModel,
-    updatedAt: new Date().toISOString(),
+    ...fileData,
+    enabled: effectiveEnabled,
+    provider: effectiveProvider,
+    apiKey: effectiveKey,
+    model: effectiveModel,
+    updatedAt: fileData.updatedAt || new Date().toISOString(),
   };
 }
 

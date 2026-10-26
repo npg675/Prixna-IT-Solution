@@ -82,6 +82,7 @@ const searchFunc = aiCode.match(/function searchExcelProducts[\s\S]*?^}/m)?.[0];
 const formatFunc = aiCode.match(/function formatExcelResults[\s\S]*?^}/m)?.[0];
 
 const runnerEnv = `
+var state = { mode: "idle", step: 0, data: {} };
 var excelCatalog = ${JSON.stringify(catalogObj)};
 function esc(s){ return String(s||''); }
 var PHONE_HREF = "tel:+9779813714582";

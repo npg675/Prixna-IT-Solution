@@ -1,0 +1,21 @@
+[
+  {
+    "id": "mem-d049b112d8a0",
+    "normalizedKey": "en:located_office_prixna_where",
+    "canonicalTokens": [
+      "located",
+      "office",
+      "prixna",
+      "where"
+    ],
+    "query": "Where is Prixna office located?",
+    "lang": "en",
+    "reply": "Prixna IT Solution is located at Koteshwor-32, Kathmandu.",
+    "model": "gpt-4o-mini",
+    "provider": "local",
+    "category": "faq",
+    "hitCount": 2,
+    "createdAt": "2026-10-11T17:36:45.833Z",
+    "lastUsedAt": "2026-10-11T17:36:45.833Z"
+  }
+]

@@ -95,6 +95,18 @@
       }
     },
     {
+      "name": "share_demo_link",
+      "description": "Share the correct software demo video page link (demo.html?product=...). Admin edits YouTube links from dashboard; always read live demo list. Flow: watch demo → free consultation → subscription.",
+      "parameters": {
+        "type": "object",
+        "required": ["product"],
+        "properties": {
+          "product": { "type": "string", "description": "Demo id, e.g. jigri-erp, restaurant-pos, jigri-crm, ehajiri-attendance, jigritools-suite" },
+          "customer_interest": { "type": "string", "description": "What the customer wants (billing, POS, CRM, attendance)" }
+        }
+      }
+    },
+    {
       "name": "check_availability",
       "description": "Check product stock from shop catalog before quoting.",
       "parameters": {
@@ -133,7 +145,8 @@
     }
   ],
   "automation_recipes": {
-    "new_conversation": "AI greets → detects intent → answers instantly → offers book/callback/human",
+    "demo_flow": "Customer interested in software → AI shares demo.html?product=... link (share_demo_link) → customer watches 2-4 min video → if interested AI books free consultation (book_appointment: Business Software Demo) → after consultation staff sends NPR subscription quote → AI follows up for subscription",
+    "new_conversation": "AI greets → detects intent (incl. demo/video/watch) → answers instantly → offers demo link / book/callback/human",
     "booking_flow": "collect name/phone/service/slot → save booking+lead → WhatsApp confirm → Google Calendar event → T-24h + T-2h reminders → staff notified",
     "support_flow": "3-step triage → create ticket → if Urgent escalate + SMS staff → WhatsApp ticket to customer → next-morning priority queue if closed",
     "after_hours": "never promise instant call; book priority callback for next Sun-Fri morning",

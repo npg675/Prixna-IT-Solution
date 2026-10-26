@@ -104,6 +104,8 @@ function DashboardInner() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm"><Link href="/admin">📥 Inbox</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link href="/admin/demos">🎬 Demo Videos</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link href="/admin/ai">🤖 AI Config</Link></Button>
           <Button asChild variant="outline" size="sm"><Link href="/quote-builder">🧾 New quote</Link></Button>
           <Button variant="outline" size="sm" onClick={flush}>🔄 Retry sync</Button>
           <Button variant="outline" size="sm" onClick={exportAll}>⬇ Export</Button>
@@ -163,6 +165,19 @@ function DashboardInner() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="mt-4 border-green-200">
+        <CardHeader><CardTitle>✨ New Showcase</CardTitle></CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Hardware &amp; software items you add appear on <Link className="underline" href="/showcase">/showcase</Link> + AI recommendations. Old shop list is not used.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button asChild size="sm"><Link href="/showcase">View showcase</Link></Button>
+            <Button asChild variant="outline" size="sm"><Link href="/admin/showcase">Manage items</Link></Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="mt-4">
         <CardHeader><CardTitle>🔀 Lead pipeline</CardTitle></CardHeader>

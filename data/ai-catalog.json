@@ -1,40 +1,38 @@
 {
   "fileName": "Prixna_Products_Test.xlsx",
-  "uploadedAt": "2026-10-11T14:48:08.393Z",
+  "uploadedAt": "2026-10-12T01:48:03.542Z",
   "rowCount": 3,
   "items": [
     {
-      "id": "item-1",
-      "name": "Dell Inspiron 15 3520 (Intel Core i5 12th Gen)",
-      "category": "Laptops & Computers",
-      "price": "Rs. 74,000",
-      "priceNumeric": 72500,
-      "stock": "In stock (3 units left)",
-      "warranty": "1 Year Brand Warranty",
-      "specs": "Core i5-1235U, 16GB DDR4 RAM, 512GB NVMe SSD",
-      "notes": "Free laptop bag, wireless mouse included."
-    },
-    {
-      "id": "item-2",
+      "id": "test-1",
       "name": "Hikvision 4-Camera HD 2MP Night Vision Kit",
       "category": "CCTV & Security",
       "price": "Rs. 28,500",
-      "priceNumeric": 28500,
       "stock": "In stock",
       "warranty": "1 Year Official Warranty",
-      "specs": "4CH DVR, 1TB Seagate HDD, 2 Dome + 2 Bullet",
+      "specs": "2 Indoor Dome + 2 Outdoor Bullet 1080p, 4CH DVR, 1TB Seagate HDD",
       "notes": "Free site inspection in Kathmandu Valley."
     },
     {
-      "id": "item-3",
-      "name": "TP-Link Archer C6 Gigabit Dual Band Router",
-      "category": "Networking & Accessories",
-      "price": "Rs. 3,900",
+      "id": "test-2",
+      "name": "Dell Inspiron 15 3520 (Intel Core i5 12th Gen)",
+      "category": "Laptops & Computers",
+      "price": "Rs. 72,500",
       "stock": "In stock",
-      "warranty": "1 Year Replacement",
-      "specs": "1200Mbps, 4 Gigabit LAN + 1 WAN, MU-MIMO",
-      "notes": "Ideal for office or home."
+      "warranty": "1 Year Brand Warranty",
+      "specs": "Core i5-1235U, 16GB DDR4 RAM, 512GB NVMe SSD, 15.6 FHD 120Hz display",
+      "notes": "Free laptop bag, wireless mouse, and mouse pad included."
+    },
+    {
+      "id": "test-3",
+      "name": "High-Speed NVMe M.2 SSD 512GB (Kingston)",
+      "category": "Hardware & Upgrades",
+      "price": "Rs. 4,800",
+      "stock": "In stock",
+      "warranty": "3 Years Replacement Warranty",
+      "specs": "Up to 3500MB/s read speed, PCIe Gen 3x4",
+      "notes": "Includes 100% safe Windows & data cloning in Koteshwor."
     }
   ],
-  "summaryText": "Updated Summary"
+  "summaryText": "=== LIVE COMPANY PRODUCT CATALOGUE & PRICING ===\nTotal items: 3"
 }

@@ -7,14 +7,17 @@
     { href: "index.html", label: "Home" },
     { href: "software-saas.html", label: "Software Solutions", kids: [
       { href: "software-saas.html", label: "Business Software & SaaS" },
+      { href: "demo.html", label: "🎬 Watch Software Demos" },
       { href: "jigritools.html", label: "JigriTools Suite" },
       { href: "custom-development.html", label: "Custom Software & Websites" },
       { href: "accounting-erp-crm.html", label: "Accounting, ERP & CRM" },
       { href: "restaurant-hospitality.html", label: "Restaurant & Hospitality" },
       { href: "attendance-payroll.html", label: "Attendance & Payroll" }
     ]},
-    { href: "shop.html", label: "Hardware & Products", kids: [
-      { href: "shop.html", label: "All Products" },
+    { href: "showcase.html", label: "✨ Showcase", kids: [
+      { href: "showcase.html", label: "✨ New Showcase" },
+      { href: "demo.html", label: "🎬 Software Demos" },
+      { href: "shop.html", label: "Old Shop (archive)" },
       { href: "computers-laptops.html", label: "Computers & Laptops" },
       { href: "cctv-security.html", label: "CCTV & Security" },
       { href: "biometric-access.html", label: "Biometric & Access" },
@@ -132,8 +135,8 @@
       "<p class=\"small\">Complete business technology — software, hardware, installation and support from one trusted partner in Kathmandu, Nepal.</p>" +
       '<p class="small">📍 ' + C.address + "<br>✉️ " + C.email + "<br>📞 " + C.phoneDisplay + "<br>🕒 " + C.hours + "</p>" +
       '<p class="small"><a href="' + C.facebook + '" target="_blank" rel="noopener">Facebook</a> · <a href="' + C.reviewUrl + '" target="_blank" rel="noopener">Google Reviews</a> · <a href="' + C.jigriToolsUrl + '" target="_blank" rel="noopener">JigriTools</a></p></div>' +
-      '<div><h4>Software</h4><ul><li><a href="software-saas.html">Business Software & SaaS</a></li><li><a href="jigritools.html">JigriTools Suite</a></li><li><a href="custom-development.html">Custom Software & Websites</a></li><li><a href="accounting-erp-crm.html">Accounting, ERP & CRM</a></li><li><a href="attendance-payroll.html">Attendance & Payroll</a></li></ul></div>' +
-      '<div><h4>Hardware & Services</h4><ul><li><a href="shop.html">Shop All Products</a></li><li><a href="computers-laptops.html">Computers & Laptops</a></li><li><a href="cctv-security.html">CCTV & Security</a></li><li><a href="biometric-access.html">Biometric & Access</a></li><li><a href="repair-maintenance.html">Repair & Maintenance</a></li><li><a href="networking-servers.html">Networking & Servers</a></li><li><a href="bulk-quote.html">Bulk & Dealer Pricing</a></li></ul></div>' +
+      '<div><h4>Software</h4><ul><li><a href="software-saas.html">Business Software & SaaS</a></li><li><a href="demo.html">🎬 Watch Software Demos</a></li><li><a href="jigritools.html">JigriTools Suite</a></li><li><a href="custom-development.html">Custom Software & Websites</a></li><li><a href="accounting-erp-crm.html">Accounting, ERP & CRM</a></li><li><a href="attendance-payroll.html">Attendance & Payroll</a></li></ul></div>' +
+      '<div><h4>Hardware & Services</h4><ul><li><a href="showcase.html">✨ New Showcase</a></li><li><a href="shop.html">Old Shop (archive)</a></li><li><a href="computers-laptops.html">Computers & Laptops</a></li><li><a href="cctv-security.html">CCTV & Security</a></li><li><a href="biometric-access.html">Biometric & Access</a></li><li><a href="repair-maintenance.html">Repair & Maintenance</a></li><li><a href="networking-servers.html">Networking & Servers</a></li><li><a href="bulk-quote.html">Bulk & Dealer Pricing</a></li></ul></div>' +
       '<div><h4>Company</h4><ul><li><a href="about.html">About Us</a></li><li><a href="industries.html">Industries We Serve</a></li><li><a href="projects.html">Projects & Testimonials</a></li><li><a href="resources.html">Blog & Resources</a></li><li><a href="contact.html">Contact</a></li><li><a href="quote.html">Get a Free Consultation</a></li><li><a href="admin.html">Lead Inbox (staff)</a></li><li><a href="dashboard.html">Control Center (staff)</a></li></ul></div>' +
       "</div>" +
       '<div class="f-bottom"><span>© ' + y + " " + C.name + ' All rights reserved.</span>' +
@@ -215,7 +218,7 @@
     if (document.getElementById("lead-list") || document.getElementById("prixna-ai-inbox")) loadScript("js/prixna-ai-admin.js");
     if (document.getElementById("lead-list")) loadScript("js/prixna-analytics.js");
   }
-  document.addEventListener("DOMContentLoaded", function () {
+  function boot() {
     mountHeader();
     mountFooter();
     mountReveal();
@@ -224,7 +227,12 @@
     mountPrixnaAI();
     var y = document.getElementById("year");
     if (y) y.textContent = new Date().getFullYear();
-  });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
   window.PRIXNA_WA = waLink;
   window.PRIXNA_SRC = getSource;
   window.PRIXNA_LOG = logEvent;

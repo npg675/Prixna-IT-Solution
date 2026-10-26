@@ -23,6 +23,8 @@ const solutionLinks = [
 ];
 
 const platformLinks = [
+  { name: "🎬 Watch Software Demos", href: "/demo" },
+  { name: "✨ New Showcase", href: "/showcase" },
   { name: "JigriTools (Free)", href: "/products/jigritools" },
   { name: "Jigri ERP", href: "/products/jigri-erp" },
   { name: "Jigri CRM", href: "/products/jigri-crm" },

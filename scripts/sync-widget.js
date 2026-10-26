@@ -9,6 +9,7 @@ const jobs = [
   { from: "js/prixna-ai.js", to: "public/js/prixna-ai.js", absCss: true },
   { from: "js/prixna-notify.js", to: "public/js/prixna-notify.js", absCss: false },
   { from: "css/prixna-ai.css", to: "public/css/prixna-ai.css", absCss: false },
+  { from: "data/software-demos.json", to: "public/data/software-demos.json", absCss: false },
 ];
 
 for (const j of jobs) {

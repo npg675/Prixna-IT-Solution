@@ -12,10 +12,8 @@ import {
   fmtDate, npr, store, toCSV,
   type Feedback, type Lead, type Quote, type Ticket,
 } from "@/lib/staff-store";
-import { AISettingsTab } from "@/components/admin/AISettingsTab";
-
 const STATUSES = ["new", "contacted", "qualified", "won", "lost"];
-type Tab = "leads" | "tickets" | "quotes" | "feedback" | "ai";
+type Tab = "leads" | "tickets" | "quotes" | "feedback";
 
 function AdminInner() {
   const [tab, setTab] = useState<Tab>("leads");
@@ -61,12 +59,15 @@ function AdminInner() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm"><Link href="/dashboard">🎛️ Control Center</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link href="/admin/demos">🎬 Demo Videos</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link href="/admin/showcase">✨ Showcase</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link href="/admin/ai">🤖 AI Assistant</Link></Button>
           <Button variant="outline" size="sm" onClick={exportCSV}>⬇ CSV</Button>
         </div>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        {(["leads", "tickets", "quotes", "feedback", "ai"] as Tab[]).map((t) => (
+        {(["leads", "tickets", "quotes", "feedback"] as Tab[]).map((t) => (
           <Button key={t} variant={tab === t ? "default" : "outline"} size="sm" onClick={() => setTab(t)}>
             {t === "leads"
               ? `Leads (${leads.length})`
@@ -74,9 +75,7 @@ function AdminInner() {
               ? `Tickets (${tickets.length})`
               : t === "quotes"
               ? `Quotes (${quotes.length})`
-              : t === "feedback"
-              ? `Feedback (${feedback.length})`
-              : "🤖 AI Assistant"}
+              : `Feedback (${feedback.length})`}
           </Button>
         ))}
       </div>
@@ -161,7 +160,7 @@ function AdminInner() {
         </div>
       )}
 
-      {tab === "ai" && <AISettingsTab />}
+
 
       <Card className="mt-6"><CardHeader><CardTitle className="text-base">Backup</CardTitle></CardHeader>
         <CardContent><Button variant="outline" size="sm" onClick={exportCSV}>⬇ Export CSV</Button></CardContent>

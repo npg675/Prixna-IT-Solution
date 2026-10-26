@@ -83,6 +83,15 @@ export function ConsultationForm({
     mode: "onChange",
   });
 
+  const selectedService = form.watch("service");
+  const selectedContactVia = form.watch("contactVia");
+
+  React.useEffect(() => {
+    if (service) {
+      form.setValue("service", service, { shouldValidate: true });
+    }
+  }, [service, form]);
+
   const generateReferenceId = () => {
     return "L-" + Date.now().toString(36).toUpperCase() + "-" + Math.floor(Math.random() * 1296).toString(36).toUpperCase();
   };
@@ -288,7 +297,7 @@ export function ConsultationForm({
           <Label htmlFor="service">Service needed</Label>
           <Select
             {...form.register("service")}
-            value={form.getValues("service") || ""}
+            value={selectedService || ""}
             onValueChange={(value) => form.setValue("service", value)}
           >
             <SelectTrigger id="service" aria-invalid={form.formState.errors.service ? "true" : "false"}>
@@ -324,7 +333,7 @@ export function ConsultationForm({
               <Label htmlFor="contactVia">How should we reach you?</Label>
               <Select
                 {...form.register("contactVia")}
-                value={form.getValues("contactVia") || ""}
+                value={selectedContactVia || ""}
                 onValueChange={(value) => form.setValue("contactVia", value)}
               >
                 <SelectTrigger id="contactVia">

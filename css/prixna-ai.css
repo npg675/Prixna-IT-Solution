@@ -50,4 +50,6 @@
 #prixna-ai-form button.voice.listening .google-mic-svg{opacity:0;transform:scale(.4)}
 #prixna-ai-form button.voice.listening .google-dots{display:flex}
 .prixna-ai-note{font-size:11px;color:var(--muted,#5B6C8F);text-align:center;padding:6px;background:var(--card,#fff)}
+.prixna-ai-demo-cta{display:inline-flex;align-items:center;gap:6px;margin:8px 0;padding:8px 14px;background:linear-gradient(135deg,#1D6FF2,#0d57cb);color:#fff!important;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none!important;box-shadow:0 3px 10px rgba(29,111,242,.25);transition:all .15s}
+.prixna-ai-demo-cta:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(29,111,242,.35);filter:brightness(1.08)}
 @media(max-width:480px){#prixna-ai-fab span.lbl{display:none}#prixna-ai-fab{padding:10px}#prixna-ai-panel{right:8px;bottom:72px}}

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watch Software Demo | Prixna IT Solution — Billing, POS, CRM, Attendance</title>
+<meta name="description" content="Watch a short demo video of our billing, restaurant POS, CRM and attendance software. Then get a free consultation and simple NPR subscription from Prixna IT Solution, Koteshwor Kathmandu.">
+<link rel="canonical" href="https://prixnaitsolution.com.np/demo.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Watch Software Demo — Prixna IT Solution">
+<meta property="og:description" content="Short demo videos → free consultation → simple subscription. No pressure.">
+<meta name="theme-color" content="#0A1A38">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script>try{if(localStorage.getItem("prixna_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
+<style>
+.demo-hero{background:linear-gradient(160deg,#0A1A38,#16386F);color:#fff;padding:56px 0 40px}
+.demo-hero .crumb a{color:#CFDEFB}
+.demo-steps{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.demo-steps span{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);padding:8px 14px;border-radius:999px;font-size:.88rem}
+.demo-steps b{color:#FFD97A}
+.video-shell{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow-lg)}
+.video-frame{position:relative;aspect-ratio:16/9;background:#060F24}
+.video-frame iframe,.video-frame video{position:absolute;inset:0;width:100%;height:100%;border:0}
+.video-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#CFDEFB;text-align:center;padding:30px}
+.flow{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px}
+@media(max-width:760px){.flow{grid-template-columns:1fr}}
+.flow .card{text-align:left}
+.tick{color:var(--green-600);font-weight:700}
+.chip{display:inline-block;background:var(--blue-100);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:.82rem;font-weight:700;margin:0 6px 6px 0}
+.sticky-cta{position:sticky;bottom:12px;z-index:5;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-md);padding:12px 14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:22px}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header id="site-header"></header>
+<main id="main">
+
+<section class="demo-hero"><div class="container">
+<p class="crumb"><a href="index.html">Home</a> / <a href="software-saas.html">Software</a> / <span id="crumb-product">All demos</span></p>
+<h1 id="demo-title">🎬 Watch a software demo</h1>
+<p class="lead" id="demo-sub" style="color:#C4D3F0;max-width:760px">Pick a product, watch a 2–4 minute video, then — only if you like it — get a free consultation and a simple subscription. No pressure, no jargon.</p>
+<div class="demo-steps"><span><b>1</b> ▶️ Watch demo</span><span><b>2</b> 🆓 Free consultation</span><span><b>3</b> ✅ Subscribe & go live</span></div>
+<div class="btn-row" style="margin-top:20px">
+<a class="btn btn-primary btn-sm" href="#watch" data-track="demo_hero_watch">▶️ Watch now</a>
+<a class="btn btn-outline btn-sm" style="color:#fff;border-color:rgba(255,255,255,.4)" href="#" id="hero-consult" data-track="demo_hero_consult">Get Free Consultation →</a>
+</div>
+</div></section>
+
+<section class="section" id="watch"><div class="container">
+<div class="grid g2" style="align-items:start">
+<div>
+<div class="video-shell">
+<div class="video-frame" id="video-frame"><div class="video-empty"><div style="font-size:3rem">🎬</div><p><b>Loading demo…</b></p></div></div>
+<div style="padding:18px 20px">
+<div id="demo-chips"></div>
+<h2 id="demo-name" style="margin:6px 0">Choose a demo below</h2>
+<p class="muted" id="demo-tag"></p>
+<ul id="demo-features" style="margin:12px 0;padding-left:20px"></ul>
+<p class="small muted" id="demo-meta"></p>
+</div>
+</div>
+<div class="sticky-cta">
+<a class="btn btn-primary" href="#" id="cta-consult" data-track="demo_cta_consult">🆓 Free Consultation →</a>
+<a class="btn btn-whatsapp btn-sm" href="#" id="cta-wa" target="_blank" rel="noopener" data-track="demo_cta_wa">💬 WhatsApp about this</a>
+<button class="btn btn-outline btn-sm" id="cta-ai" type="button" data-track="demo_cta_ai">🤖 Ask AI about this</button>
+</div>
+<div class="flow">
+<div class="card"><b>1 · Watch (2–4 min)</b><p class="small muted">See the real software doing real billing, KOT, stock or attendance work.</p></div>
+<div class="card"><b>2 · Free consultation</b><p class="small muted">We understand your shop/office workflow — on call, WhatsApp or free Valley site visit.</p></div>
+<div class="card"><b>3 · Subscribe</b><p class="small muted" id="plan-hint">Simple NPR plan. Setup + training + support included.</p></div>
+</div>
+</div>
+<div>
+<div class="form-card" style="position:sticky;top:90px">
+<h3 style="margin-top:0">👋 Interested after watching?</h3>
+<p class="muted small">Tell us where to reach you — we call back during business hours (Sun–Fri, 9:30–6:30).</p>
+<div data-lead-form-mount id="demo-lead-mount" data-title="Request free consultation" data-subtitle="Mention the demo you watched — we continue from there." data-service="Business Software / SaaS Demo" data-form="software-demo-watch" data-submit="I Watched the Demo — Call Me →" data-booking="1"></div>
+<p class="small muted" style="margin-top:12px">Prefer talking now? 📞 <a href="tel:+9779813714582">+977 9813714582</a></p>
+</div>
+</div>
+</div>
+</div></section>
+
+<section class="section section-soft"><div class="container">
+<div class="center"><span class="eyebrow">All software demos</span>
+<h2>Not this one? Try another</h2>
+<p class="lead">Every demo follows the same flow — watch → free consultation → subscribe only if it fits.</p></div>
+<div class="grid g3" style="margin-top:30px" data-demos-mount></div>
+</div></section>
+
+</main>
+<footer id="site-footer"></footer>
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/prixna-demos.js"></script>
+<script src="js/main.js"></script>
+<script src="js/leads.js"></script>
+<script>
+(function(){
+  "use strict";
+  function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+  function param(n){try{return new URLSearchParams(location.search).get(n)||"";}catch(e){return"";}}
+  function boot(){
+    var D = window.PRIXNA_DEMOS;
+    function render(){
+      var id = param("product");
+      var all = D.active();
+      var d = (id && D.get(id)) || all[0];
+      if(!d){
+        document.getElementById("video-frame").innerHTML = '<div class="video-empty"><div style="font-size:3rem">🎬</div><p><b>Demos coming soon.</b><br>Request a live demo instead.</p><a class="btn btn-primary btn-sm" href="quote.html?service=Business%20Software%20%2F%20SaaS%20Demo">Request live demo</a></div>';
+        return;
+      }
+      document.title = d.name + " — Watch Demo | Prixna IT Solution";
+      document.getElementById("crumb-product").textContent = d.name;
+      document.getElementById("demo-title").textContent = d.icon + " " + d.name;
+      document.getElementById("demo-sub").textContent = d.tagline + " — watch below, then get a free consultation if you like it.";
+      document.getElementById("demo-name").textContent = d.name;
+      document.getElementById("demo-tag").textContent = d.tagline || "";
+      document.getElementById("demo-chips").innerHTML =
+        '<span class="chip">' + esc(d.category||"Software") + '</span>' +
+        '<span class="chip">⏱️ ' + esc(d.duration||"short video") + '</span>' +
+        '<span class="chip">👥 ' + esc(d.audience||"") + '</span>';
+      document.getElementById("demo-features").innerHTML = (d.features||[]).map(function(f){return "<li><span class='tick'>✓</span> " + esc(f) + "</li>";}).join("");
+      document.getElementById("demo-meta").textContent = d.planHint || "";
+      document.getElementById("plan-hint").textContent = d.planHint || "Simple NPR plan. Setup + training + support included.";
+      var emb = D.embedUrl(d);
+      var vf = document.getElementById("video-frame");
+      if(emb){
+        if(/youtube/.test(emb)){
+          vf.innerHTML = '<iframe src="' + emb + '" title="' + esc(d.name) + ' demo video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>';
+        } else {
+          vf.innerHTML = '<video src="' + emb + '" controls preload="metadata" playsinline></video>';
+        }
+      } else {
+        var wa = D.waLink(d);
+        vf.innerHTML = '<div class="video-empty"><div style="font-size:3rem">' + esc(d.icon||"🎬") + '</div><p><b>Video for “' + esc(d.name) + '” is being uploaded.</b><br>Meanwhile — get a <b>free live demo</b> on call or site visit.</p><div class="btn-row" style="justify-content:center"><a class="btn btn-primary btn-sm" href="' + D.consultLink(d) + '">Get Free Live Demo →</a><a class="btn btn-whatsapp btn-sm" target="_blank" rel="noopener" href="' + wa + '">💬 Ask on WhatsApp</a></div></div>';
+      }
+      var cl = D.consultLink(d);
+      document.getElementById("cta-consult").href = cl;
+      document.getElementById("hero-consult").href = cl;
+      document.getElementById("cta-wa").href = D.waLink(d);
+      document.getElementById("cta-ai").onclick = function(){
+        try{
+          if(window.PRIXNA_LOG) window.PRIXNA_LOG("demo_ai_ask", d.id);
+          var fab = document.getElementById("prixna-ai-fab");
+          if(fab) fab.click();
+          setTimeout(function(){
+            var inp = document.getElementById("prixna-ai-input");
+            if(inp){ inp.value = "I watched the " + d.name + " demo (" + d.id + "). I am interested — what are the next steps for consultation and subscription?"; inp.focus(); }
+          }, 600);
+        }catch(e){}
+      };
+      // prefill lead form service + message
+      var mount = document.getElementById("demo-lead-mount");
+      if(mount){
+        mount.setAttribute("data-service", d.consultService || "Business Software / SaaS Demo");
+        setTimeout(function(){
+          var f = mount.querySelector("form");
+          if(f){
+            var svc = f.querySelector('[name="service"]');
+            if(svc){
+              var opt = Array.prototype.find.call(svc.options, function(o){return o.value===d.consultService;});
+              if(!opt){ var o2=document.createElement("option"); o2.value=d.consultService; o2.textContent=d.consultService; svc.appendChild(o2); }
+              svc.value = d.consultService;
+            }
+            var msg = f.querySelector('[name="message"]');
+            if(msg && !msg.value) msg.value = "I watched the demo for " + d.name + " (" + location.href + "). Please call me for free consultation + subscription details.";
+          }
+        }, 400);
+      }
+      try{ if(window.PRIXNA_LOG) window.PRIXNA_LOG("demo_view", d.id); }catch(e){}
+      // "other demos" grid: exclude current
+      var grid = document.querySelector("[data-demos-mount]");
+      if(grid){
+        var others = all.filter(function(x){return x.id!==d.id;});
+        // let library render first, then filter — simpler: keep all, current still visible is fine
+      }
+    }
+    if(D.list().length) render();
+    else D.init().then(render);
+    document.addEventListener("DOMContentLoaded", render);
+    var iv = setInterval(function(){ if(D.list().length){ render(); clearInterval(iv); } }, 800);
+    setTimeout(function(){ clearInterval(iv); }, 6000);
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", boot);
+  else boot();
+})();
+</script>
+</body>
+</html>

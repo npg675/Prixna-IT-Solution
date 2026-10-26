@@ -159,7 +159,8 @@ function Builder() {
     }
   }, [quoteDate]);
 
-  const activeQuoteId = savedId || useMemo(() => newQuoteId(), []);
+  const generatedQuoteId = useMemo(() => newQuoteId(), []);
+  const activeQuoteId = savedId || generatedQuoteId;
 
   // Row modifications
   const setRow = (i: number, k: keyof QRow, v: string | number) =>
